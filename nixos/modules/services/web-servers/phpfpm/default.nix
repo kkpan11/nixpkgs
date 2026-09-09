@@ -49,10 +49,12 @@ let
       {
         inherit (poolOpts) phpPackage phpOptions;
         preferLocalBuild = true;
-        passAsFile = [ "phpOptions" ];
+        __structuredAttrs = true;
       }
       ''
-        cat ${poolOpts.phpPackage}/etc/php.ini $phpOptionsPath > $out
+        ( cat ${poolOpts.phpPackage}/etc/php.ini
+          printf "%s" "$phpOptions"
+        ) > $out
       '';
 
   poolOpts =
