@@ -1,19 +1,19 @@
 {
   lib,
-  crystal_1_17,
+  crystal_1_19,
   fetchFromGitHub,
   versionCheckHook,
   ...
 }:
-crystal_1_17.buildCrystalPackage rec {
+crystal_1_19.buildCrystalPackage rec {
   pname = "coverage-reporter";
-  version = "0.6.17";
+  version = "0.6.22";
 
   src = fetchFromGitHub {
     owner = "coverallsapp";
     repo = "coverage-reporter";
     tag = "v${version}";
-    hash = "sha256-wbxPjNAUubbL9TJnyqR7aYkMmADkIuD2PF00xI2wa84=";
+    hash = "sha256-9h7nshdO7qc5XdAMoELwKkFtIwTa5IMi0AvC6lL5fyk=";
   };
 
   shardsFile = ./shards.nix;
