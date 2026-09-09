@@ -33,7 +33,10 @@ crystal_1_17.buildCrystalPackage rec {
     description = "Self-contained, universal coverage uploader binary";
     homepage = "https://github.com/coverallsapp/coverage-reporter";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ quadradical ];
+    maintainers = with lib.maintainers; [
+      quadradical
+      chrjabs
+    ];
     mainProgram = "coveralls";
   };
 }
