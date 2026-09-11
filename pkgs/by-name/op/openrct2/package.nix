@@ -171,8 +171,8 @@ stdenv.mkDerivation (finalAttrs: {
     # sdl2-compat is the default for SDL2 in Nixpkgs, which has issues on Darwin.
     # Set OpenGL as the default renderer in Darwin to bypass them.
     substituteInPlace src/openrct2/config/Config.cpp \
-        --replace-fail 'DrawingEngine::SoftwareWithHardwareDisplay, Enum_DrawingEngine)' \
-                       'DrawingEngine::OpenGL, Enum_DrawingEngine)'
+        --replace-fail 'DrawingEngine::softwareWithHardwareDisplay, Enum_DrawingEngine)' \
+                       'DrawingEngine::openGL, Enum_DrawingEngine)'
 
     # Wrapping with --rct*-data-path will not work on Darwin for OpenRCT2.app.
     # This simply sets that data path as the default in source, if defined.
