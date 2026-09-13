@@ -23,6 +23,9 @@ python3Packages.buildPythonApplication (finalAttrs: {
     # auto included in current python version, no install needed
     substituteInPlace setup.py --replace-fail \
       'importlib' ' '
+    # Fix "AttributeError: module 'importlib' has no attribute 'resources'"
+    substituteInPlace compare50/passes.py \
+      --replace-fail "import importlib" "import importlib, importlib.resources"
   '';
 
   build-system = [
