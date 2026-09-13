@@ -47,7 +47,7 @@ let
     poolOpts:
     pkgs.runCommand "php.ini"
       {
-        inherit (poolOpts) phpPackage phpOptions;
+        inherit (poolOpts) phpOptions;
         preferLocalBuild = true;
         __structuredAttrs = true;
       }
