@@ -7,18 +7,25 @@
   php84,
 }:
 
-php84.buildComposerProject2 (finalAttrs: {
+let
+  php = php84;
+in
+php.buildComposerProject2 (finalAttrs: {
   pname = "snipe-it";
-  version = "8.1.4";
+  version = "8.7.2";
+
+  patches = [
+    ./0001-Fix-backup-restoration-when-using-a-unix-socket.patch
+  ];
 
   src = fetchFromGitHub {
     owner = "grokability";
     repo = "snipe-it";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-Mz+8f8VRwBf80tfrtecKnkFDIP7lsjJVPezyZI2uFbg=";
+    hash = "sha256-ND/Et3zRhD4axNNfaq4MW4sLj3634VhnDdAtZUxnEJU=";
   };
 
-  vendorHash = "sha256-w+wdGGCACzpJMFuKk48h71DVMfsGguxeJLTen1U8Pp8=";
+  vendorHash = "sha256-9mihxUDylADJCbLSxVj+qHfT8BW6rO2qjRzhGQJT0jM=";
 
   postInstall = ''
     snipe_it_out="$out/share/php/snipe-it"
@@ -42,7 +49,7 @@ php84.buildComposerProject2 (finalAttrs: {
 
   passthru = {
     tests = nixosTests.snipe-it;
-    phpPackage = php84;
+    phpPackage = php;
   };
 
   meta = {

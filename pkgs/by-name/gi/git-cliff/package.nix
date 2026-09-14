@@ -6,19 +6,18 @@
   installShellFiles,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "git-cliff";
-  version = "2.8.0";
+  version = "2.14.1";
 
   src = fetchFromGitHub {
     owner = "orhun";
     repo = "git-cliff";
-    rev = "v${version}";
-    hash = "sha256-B421xXt7TrBJVwi04vygnw9t5o7/KLVpuItQtwV4E24=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-RR3jWEt8hggdWUr2K5vj/q+3nYWhrx6QPnLI6SuZ9IY=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-GGEKQgnSB2HW3VIj4CfxzUZaWYE2/nHJPN9ZMmHY5Ns=";
+  cargoHash = "sha256-zrk1yal5CnXAHxo9UdNgzlxU/QkLymkhTEXPylHYygI=";
 
   # attempts to run the program on .git in src which is not deterministic
   doCheck = false;
@@ -40,15 +39,15 @@ rustPlatform.buildRustPackage rec {
     installManPage $OUT_DIR/git-cliff.1
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Highly customizable Changelog Generator that follows Conventional Commit specifications";
     homepage = "https://github.com/orhun/git-cliff";
-    changelog = "https://github.com/orhun/git-cliff/blob/v${version}/CHANGELOG.md";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [
+    changelog = "https://github.com/orhun/git-cliff/blob/v${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [
       siraben
       matthiasbeyer
     ];
     mainProgram = "git-cliff";
   };
-}
+})

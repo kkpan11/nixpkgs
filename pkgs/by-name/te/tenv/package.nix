@@ -8,18 +8,18 @@
   testers,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "tenv";
-  version = "4.6.2";
+  version = "4.15.1";
 
   src = fetchFromGitHub {
     owner = "tofuutils";
     repo = "tenv";
-    tag = "v${version}";
-    hash = "sha256-oYAl388/PBIL7LxOWUCZLHYfOKkkB/BEaTKpTN8rp5U=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-E4wfG9KeW+v+KcizS9ut0S5gHzvPiChaP6uGRsXfkE4=";
   };
 
-  vendorHash = "sha256-5aWf5O25cudtIny159t3Mllp2wV0C+JxWe7RDkYOxVM=";
+  vendorHash = "sha256-rZBHSlP1cRB2xzVbFLyd32q9vYPytv9nCpcjQqkei+w=";
 
   excludedPackages = [ "tools" ];
 
@@ -29,7 +29,7 @@ buildGoModule rec {
   ldflags = [
     "-s"
     "-w"
-    "-X main.version=v${version}"
+    "-X main.version=v${finalAttrs.version}"
   ];
 
   nativeBuildInputs = [ installShellFiles ];
@@ -44,18 +44,17 @@ buildGoModule rec {
   passthru.tests.version = testers.testVersion {
     command = "HOME=$TMPDIR tenv --version";
     package = tenv;
-    version = "v${version}";
+    version = "v${finalAttrs.version}";
   };
 
   meta = {
-    changelog = "https://github.com/tofuutils/tenv/releases/tag/v${version}";
+    changelog = "https://github.com/tofuutils/tenv/releases/tag/v${finalAttrs.version}";
     description = "OpenTofu, Terraform, Terragrunt and Atmos version manager written in Go";
     homepage = "https://tofuutils.github.io/tenv";
     license = lib.licenses.asl20;
     maintainers = with lib.maintainers; [
-      rmgpinto
       nmishin
       kvendingoldo
     ];
   };
-}
+})

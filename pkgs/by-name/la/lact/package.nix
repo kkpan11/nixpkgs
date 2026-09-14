@@ -5,8 +5,12 @@
   fetchFromGitHub,
   pkg-config,
   wrapGAppsHook4,
+  bashNonInteractive,
+  clinfo,
   gdk-pixbuf,
   gtk4,
+  libadwaita,
+  libdisplay-info_0_3,
   libdrm,
   ocl-icd,
   vulkan-loader,
@@ -22,17 +26,16 @@
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "lact";
-  version = "0.7.4";
+  version = "0.10.1";
 
   src = fetchFromGitHub {
     owner = "ilya-zlobintsev";
     repo = "LACT";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-zOvFWl78INlpCcEHiB3qZdxPNHXfUeKxfHyrO+wVNN0=";
+    hash = "sha256-e5imWq5+LOySCLAQRNkL6cMznAlaXv24vZuzG8giS7s=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-10FdXUpLL+8xN818toShccgB5NfpzrOLfEeDAX5oMFw=";
+  cargoHash = "sha256-KKMWUoJ3QJxwdRm65pj5VyhX9WLe5up1OxFYhmRsgZc=";
 
   nativeBuildInputs = [
     pkg-config
@@ -44,6 +47,8 @@ rustPlatform.buildRustPackage (finalAttrs: {
   buildInputs = [
     gdk-pixbuf
     gtk4
+    libadwaita
+    libdisplay-info_0_3
     libdrm
     ocl-icd
     vulkan-loader
@@ -52,8 +57,13 @@ rustPlatform.buildRustPackage (finalAttrs: {
     fuse3
   ];
 
+  checkFlags = [
+    # Requires /dev/fuse, which is unavailable in the Nix build sandbox.
+    "--skip=tests::apply_settings"
+  ];
+
   # we do this here so that the binary is usable during integration tests
-  RUSTFLAGS = lib.optionalString stdenv.targetPlatform.isElf (
+  env.RUSTFLAGS = lib.optionalString stdenv.targetPlatform.isElf (
     lib.concatStringsSep " " [
       "-C link-arg=-Wl,-rpath,${
         lib.makeLibraryPath [
@@ -69,22 +79,27 @@ rustPlatform.buildRustPackage (finalAttrs: {
   );
 
   postPatch = ''
-    substituteInPlace lact-daemon/src/server/system.rs \
-      --replace-fail 'Command::new("uname")' 'Command::new("${coreutils}/bin/uname")'
-    substituteInPlace lact-daemon/src/server/profiles.rs \
-      --replace-fail 'Command::new("uname")' 'Command::new("${coreutils}/bin/uname")'
+    substituteInPlace lact-daemon/src/server/handler.rs \
+      --replace-fail 'run_command("journalctl",'  'run_command("${systemdMinimal}/bin/journalctl",'
 
     substituteInPlace lact-daemon/src/server/handler.rs \
-      --replace-fail 'Command::new("journalctl")' 'Command::new("${systemdMinimal}/bin/journalctl")'
+      --replace-fail 'Command::new("sh")' 'Command::new("${bashNonInteractive}/bin/bash")'
+
+    substituteInPlace lact-daemon/src/server/handler.rs \
+      --replace-fail 'Command::new("clinfo")' 'Command::new("${clinfo}/bin/clinfo")'
 
     substituteInPlace lact-daemon/src/server/vulkan.rs \
       --replace-fail 'Command::new("vulkaninfo")' 'Command::new("${vulkan-tools}/bin/vulkaninfo")'
 
+    substituteInPlace lact-daemon/src/server/opencl.rs \
+      --replace-fail 'Command::new("clinfo")' 'Command::new("${clinfo}/bin/clinfo")'
+
+
+    substituteInPlace lact-daemon/src/socket.rs \
+      --replace-fail 'run_command("chown"' 'run_command("${coreutils}/bin/chown"'
+
     substituteInPlace res/lactd.service \
       --replace-fail ExecStart={lact,$out/bin/lact}
-
-    substituteInPlace res/io.github.ilya_zlobintsev.LACT.desktop \
-      --replace-fail Exec={lact,$out/bin/lact}
 
     # read() looks for the database in /usr/share so we use read_from_file() instead
     substituteInPlace lact-daemon/src/server/handler.rs \
@@ -94,7 +109,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
   postInstall = ''
     install -Dm444 res/lactd.service -t $out/lib/systemd/system
     install -Dm444 res/io.github.ilya_zlobintsev.LACT.desktop -t $out/share/applications
-    install -Dm444 res/io.github.ilya_zlobintsev.LACT.svg -t $out/share/pixmaps
+    install -Dm444 res/io.github.ilya_zlobintsev.LACT.svg -t $out/share/icons/hicolor/scalable/apps
   '';
 
   preFixup = ''
@@ -127,7 +142,6 @@ rustPlatform.buildRustPackage (finalAttrs: {
     homepage = "https://github.com/ilya-zlobintsev/LACT";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [
-      figsoda
       atemu
       cything
       johnrtitor

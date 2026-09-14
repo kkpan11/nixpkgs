@@ -7,17 +7,18 @@
 }:
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "dix";
-  version = "1.0.0";
+  version = "2.2.0";
+
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
-    owner = "bloxx12";
+    owner = "manic-systems";
     repo = "dix";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-hsTw0MyxYD4UtUEeXgNRjmp1yla9Renl6xD19XQ5/LY=";
+    hash = "sha256-U7zKSFQsmAkG4Um0DxgkgsGKh+/MqT1H3llUVd/i8UE=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-9uGtkWBShoge5tyeIdgJhthaBDF2nzCUbeY8HcaLWYc=";
+  cargoHash = "sha256-m2jRDMjZTJHKbe0Ep76SFT3tV1xytThvaRAt6A0CF3A=";
 
   nativeInstallCheckInputs = [ versionCheckHook ];
   doInstallCheck = true;
@@ -25,11 +26,17 @@ rustPlatform.buildRustPackage (finalAttrs: {
   passthru.updateScript = nix-update-script { };
 
   meta = {
-    homepage = "https://github.com/bloxx12/dix";
+    homepage = "https://github.com/manic-systems/dix";
     description = "Blazingly fast tool to diff Nix related things";
+    changelog = "https://github.com/manic-systems/dix/releases/tag/v${finalAttrs.version}";
     license = lib.licenses.gpl3Only;
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "aarch64-darwin"
+    ];
     maintainers = with lib.maintainers; [
-      bloxx12
+      faukah
       NotAShelf
     ];
     mainProgram = "dix";

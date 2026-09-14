@@ -9,26 +9,34 @@ let
 
   cfg = config.hardware.sensor.hddtemp;
 
-  wrapper = pkgs.writeShellScript "hddtemp-wrapper" ''
+  script = ''
     set -eEuo pipefail
 
     file=/var/lib/hddtemp/hddtemp.db
 
-    drives=(${toString (map (e: ''$(realpath ${lib.escapeShellArg e}) '') cfg.drives)})
+    declare -a raw_drives
+    raw_drives=( ${lib.escapeShellArgs cfg.drives} )
+    declare -a drives
+    for i in "''${raw_drives[@]}"; do
+      drives+=( "$(realpath "$i")" )
+    done
 
     cp ${pkgs.hddtemp}/share/hddtemp/hddtemp.db $file
     ${lib.concatMapStringsSep "\n" (e: "echo ${lib.escapeShellArg e} >> $file") cfg.dbEntries}
 
-    exec ${pkgs.hddtemp}/bin/hddtemp ${lib.escapeShellArgs cfg.extraArgs} \
+    ${pkgs.hddtemp}/bin/hddtemp ${lib.escapeShellArgs cfg.extraArgs} \
       --daemon \
       --unit=${cfg.unit} \
       --file=$file \
-      ''${drives[@]}
+      "''${drives[@]}"
   '';
 
 in
 {
-  meta.maintainers = with lib.maintainers; [ peterhoeg ];
+  meta.maintainers = with lib.maintainers; [
+    peterhoeg
+    usovalx
+  ];
 
   ###### interface
 
@@ -77,9 +85,10 @@ in
       description = "HDD/SSD temperature";
       documentation = [ "man:hddtemp(8)" ];
       wantedBy = [ "multi-user.target" ];
+      enableStrictShellChecks = true;
+      inherit script;
       serviceConfig = {
         Type = "forking";
-        ExecStart = wrapper;
         StateDirectory = "hddtemp";
         PrivateTmp = true;
         ProtectHome = "tmpfs";

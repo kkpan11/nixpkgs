@@ -4,25 +4,26 @@
   fetchFromGitHub,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "go-dnscollector";
-  version = "1.7.0";
+  version = "3.0.0";
 
   src = fetchFromGitHub {
     owner = "dmachard";
-    repo = "go-dnscollector";
-    rev = "v${version}";
-    sha256 = "sha256-antLNQEOA20XxmmZHFQcs0VuLVfgM5V3wyXOYIX4hlk=";
+    repo = "DNS-collector";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-DUpNgnvCKTGU01Qh3L/foVUDHgXHICtOl6wFpNi1KaA=";
   };
 
-  vendorHash = "sha256-9EQr4lhv6+PkAnMJ6iWnBsK/SzZaOyVkSpqSYsX07LY=";
+  vendorHash = "sha256-DRb/l8sXqugl8zh+QHO7a0KYF/JS4yDQ11L6MJPipd4=";
 
   subPackages = [ "." ];
 
-  meta = with lib; {
-    description = "Ingesting, pipelining, and enhancing your DNS logs with usage indicators, security analysis, and additional metadata.";
-    homepage = "https://github.com/dmachard/go-dnscollector";
-    license = licenses.mit;
-    maintainers = with maintainers; [ shift ];
+  meta = {
+    description = "Ingesting, pipelining, and enhancing your DNS logs with usage indicators, security analysis, and additional metadata";
+    homepage = "https://github.com/dmachard/DNS-collector";
+    changelog = "https://github.com/dmachard/DNS-collector/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ shift ];
   };
-}
+})

@@ -47,6 +47,8 @@ stdenv.mkDerivation (finalAttrs: {
       url = "https://github.com/FontManager/font-manager/commit/cc0c148d90741e39615e3380d283f684a052dd94.patch";
       hash = "sha256-bRn+jVjBu6ZqmQCErgcqxv6OyFa4hkPYB5bvK7rEibA=";
     })
+    # TODO: drop this patch when merged upstream and released, see https://github.com/FontManager/font-manager/pull/468
+    ./fix-compilation-error-with-newer-vala-versions.patch
   ];
 
   nativeBuildInputs = [
@@ -64,21 +66,20 @@ stdenv.mkDerivation (finalAttrs: {
     gobject-introspection
   ];
 
-  buildInputs =
-    [
-      libxml2
-      json-glib
-      sqlite
-      gsettings-desktop-schemas # for font settings
-      gtk4
-      adwaita-icon-theme
-      libarchive
-    ]
-    ++ lib.optionals withWebkit [
-      glib-networking # for SSL so that Google Fonts can load
-      libsoup_3
-      webkitgtk_6_0
-    ];
+  buildInputs = [
+    libxml2
+    json-glib
+    sqlite
+    gsettings-desktop-schemas # for font settings
+    gtk4
+    adwaita-icon-theme
+    libarchive
+  ]
+  ++ lib.optionals withWebkit [
+    glib-networking # for SSL so that Google Fonts can load
+    libsoup_3
+    webkitgtk_6_0
+  ];
 
   mesonFlags = [
     "-Dreproducible=true" # Do not hardcode build directory…
@@ -87,7 +88,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   passthru.updateScript = nix-update-script { };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://fontmanager.github.io/";
     changelog = "https://github.com/FontManager/font-manager/raw/refs/tags/${finalAttrs.version}/CHANGELOG";
     description = "Simple font management for GTK desktop environments";
@@ -101,8 +102,8 @@ stdenv.mkDerivation (finalAttrs: {
 
       Font Manager is NOT a professional-grade font management solution.
     '';
-    license = licenses.gpl3Plus;
-    platforms = platforms.unix;
-    maintainers = [ maintainers.romildo ];
+    license = lib.licenses.gpl3Plus;
+    platforms = lib.platforms.unix;
+    maintainers = [ lib.maintainers.romildo ];
   };
 })

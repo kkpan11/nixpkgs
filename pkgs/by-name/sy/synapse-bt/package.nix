@@ -8,7 +8,7 @@
 
 rustPlatform.buildRustPackage {
   pname = "synapse-bt";
-  version = "unstable-2023-02-16";
+  version = "1.0-unstable-2023-02-06";
 
   src = fetchFromGitHub {
     owner = "Luminarys";
@@ -17,7 +17,6 @@ rustPlatform.buildRustPackage {
     hash = "sha256-2irXNgEK9BjRuNu3DUMElmf2vIpGzwoFneAEe97GRh4=";
   };
 
-  useFetchCargoVendor = true;
   cargoHash = "sha256-ebqUH01h4B3Aq3apSKpae8ncaFirbrZiDxjiQM9kzg4=";
 
   nativeBuildInputs = [ pkg-config ];
@@ -25,10 +24,10 @@ rustPlatform.buildRustPackage {
 
   cargoBuildFlags = [ "--all" ];
 
-  meta = with lib; {
+  meta = {
     description = "Flexible and fast BitTorrent daemon";
     homepage = "https://synapse-bt.org/";
-    license = licenses.isc;
-    maintainers = with maintainers; [ dywedir ];
+    license = lib.licenses.isc;
+    maintainers = with lib.maintainers; [ dywedir ];
   };
 }

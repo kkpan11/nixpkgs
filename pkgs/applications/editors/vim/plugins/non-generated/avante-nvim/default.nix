@@ -9,27 +9,26 @@
   vimPlugins,
   vimUtils,
   makeWrapper,
-  pkgs,
+  perl,
 }:
 let
-  version = "0.0.23-unstable-2025-05-30";
+  version = "0.2.3";
   src = fetchFromGitHub {
     owner = "yetone";
     repo = "avante.nvim";
-    rev = "22418bff8bcac4377ebf975cd48f716823867979";
-    hash = "sha256-qyeiDDjeReOr+TvgCWnKhb8FBN9t1YPFGvVqPvxXr0k=";
+    tag = "v${version}";
+    hash = "sha256-VJN2ero5ndLqfmMImUF9fqbUKku6Q1CypjK5Q+SB0ck=";
   };
   avante-nvim-lib = rustPlatform.buildRustPackage {
     pname = "avante-nvim-lib";
     inherit version src;
 
-    useFetchCargoVendor = true;
-    cargoHash = "sha256-pmnMoNdaIR0i+4kwW3cf01vDQo39QakTCEG9AXA86ck=";
+    cargoHash = "sha256-F0SJ4iv/oL2560KmqH7Sun3F+yXR44daYFbOQRsYlDg=";
 
     nativeBuildInputs = [
       pkg-config
       makeWrapper
-      pkgs.perl
+      perl
     ];
 
     buildInputs = [
@@ -37,6 +36,9 @@ let
     ];
 
     buildFeatures = [ "luajit" ];
+
+    # Allow undefined symbols on Darwin - they will be provided by Neovim's LuaJIT runtime
+    env.RUSTFLAGS = lib.optionalString stdenv.hostPlatform.isDarwin "-C link-arg=-undefined -C link-arg=dynamic_lookup";
 
     checkFlags = [
       # Disabled because they access the network.
@@ -64,16 +66,18 @@ vimUtils.buildVimPlugin {
       ext = stdenv.hostPlatform.extensions.sharedLibrary;
     in
     ''
-      mkdir -p $out/build
-      ln -s ${avante-nvim-lib}/lib/libavante_repo_map${ext} $out/build/avante_repo_map${ext}
-      ln -s ${avante-nvim-lib}/lib/libavante_templates${ext} $out/build/avante_templates${ext}
-      ln -s ${avante-nvim-lib}/lib/libavante_tokenizers${ext} $out/build/avante_tokenizers${ext}
-      ln -s ${avante-nvim-lib}/lib/libavante_html2md${ext} $out/build/avante_html2md${ext}
+      # place dynamic shared libraries directly into lua/ for native C-module discovery
+      mkdir -p $out/lua
+      cp ${avante-nvim-lib}/lib/libavante_repo_map${ext} $out/lua/avante_repo_map${ext}
+      cp ${avante-nvim-lib}/lib/libavante_templates${ext} $out/lua/avante_templates${ext}
+      cp ${avante-nvim-lib}/lib/libavante_tokenizers${ext} $out/lua/avante_tokenizers${ext}
+      cp ${avante-nvim-lib}/lib/libavante_html2md${ext} $out/lua/avante_html2md${ext}
+
+      install -D contrib/avante $out/bin/avante
     '';
 
   passthru = {
     updateScript = nix-update-script {
-      extraArgs = [ "--version=branch" ];
       attrPath = "vimPlugins.avante-nvim.avante-nvim-lib";
     };
 
@@ -86,14 +90,13 @@ vimUtils.buildVimPlugin {
     "avante.providers.azure"
     "avante.providers.copilot"
     "avante.providers.gemini"
-    "avante.providers.ollama"
     "avante.providers.vertex"
     "avante.providers.vertex_claude"
   ];
 
   meta = {
     description = "Neovim plugin designed to emulate the behaviour of the Cursor AI IDE";
-    homepage = "https://github.com/yetone/avante.nvim";
+    homepage = "https://github.com/avante-corp/avante.nvim";
     license = lib.licenses.asl20;
     maintainers = with lib.maintainers; [
       ttrei

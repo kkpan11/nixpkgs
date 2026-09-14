@@ -1,6 +1,7 @@
 {
   buildGoModule,
   fetchFromGitHub,
+  fetchpatch2,
   lib,
   versionCheckHook,
 }:
@@ -10,14 +11,18 @@ buildGoModule (finalAttrs: {
   version = "0.32.1";
 
   src = fetchFromGitHub {
-    owner = "yamashou";
+    owner = "gqlgo";
     repo = "gqlgenc";
     rev = "v${finalAttrs.version}";
     sha256 = "sha256-AGbE+R3502Igl4/HaN8yvFVJBsKQ6iVff8IEvddJLEo=";
   };
 
   patches = [
-    ./fix-version.patch
+    (fetchpatch2 {
+      name = "fix-version.patch";
+      url = "https://github.com/gqlgo/gqlgenc/commit/aad0599a70780696a9530a7adffebfff53538695.patch?full_index=1";
+      hash = "sha256-moidhkkO/5It8kH1VlwbV+YLlMOTXKH3RyLKGCA2chw=";
+    })
   ];
 
   excludedPackages = [ "example" ];
@@ -40,7 +45,7 @@ buildGoModule (finalAttrs: {
   meta = {
     description = "Go tool for building GraphQL client with gqlgen";
     mainProgram = "gqlgenc";
-    homepage = "https://github.com/Yamashou/gqlgenc";
+    homepage = "https://github.com/gqlgo/gqlgenc";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ wattmto ];
   };

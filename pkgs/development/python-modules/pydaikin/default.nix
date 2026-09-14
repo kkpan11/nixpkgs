@@ -5,27 +5,24 @@
   buildPythonPackage,
   fetchFromGitHub,
   freezegun,
-  netifaces,
+  psutil,
   pytest-asyncio,
   pytestCheckHook,
-  pythonOlder,
   urllib3,
   setuptools,
   tenacity,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pydaikin";
-  version = "2.16.0";
+  version = "2.19.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.11";
 
   src = fetchFromGitHub {
     owner = "fredrike";
     repo = "pydaikin";
-    tag = "v${version}";
-    hash = "sha256-EZuhNenDLwKehbgWfwkwC0imUC1uyvNmsp0g9ZjW7t4=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-NgU+H5oliNJedQnrqiLIgOHsMKrnk1obAs1p5s/Skkg=";
   };
 
   __darwinAllowLocalNetworking = true;
@@ -34,7 +31,7 @@ buildPythonPackage rec {
 
   dependencies = [
     aiohttp
-    netifaces
+    psutil
     urllib3
     tenacity
   ];
@@ -46,14 +43,19 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
+  disabledTests = [
+    # Failed: async def functions are not natively supported.
+    "test_update_status_dry_comfort_offset"
+  ];
+
   pythonImportsCheck = [ "pydaikin" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python Daikin HVAC appliances interface";
     homepage = "https://github.com/fredrike/pydaikin";
-    changelog = "https://github.com/fredrike/pydaikin/releases/tag/${src.tag}";
-    license = with licenses; [ gpl3Only ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/fredrike/pydaikin/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ fab ];
     mainProgram = "pydaikin";
   };
-}
+})

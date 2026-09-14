@@ -23,21 +23,22 @@
   xdp-tools,
   fstrm,
   protobufc,
-  sphinx,
   autoreconfHook,
+  tzdata,
   nixosTests,
-  knot-resolver,
+  knot-resolver_5,
+  knot-resolver-manager_6,
   knot-dns,
   runCommandLocal,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "knot-dns";
-  version = "3.4.6";
+  version = "3.6.0";
 
   src = fetchurl {
-    url = "https://secure.nic.cz/files/knot-dns/knot-${version}.tar.xz";
-    sha256 = "sha256-0ZxaH/lLTyYCfWNd4Qjb/Ij1ZSvobMs7qaRO6b4OWDk=";
+    url = "https://knot-dns.nic.cz/release/knot-${finalAttrs.version}.tar.xz";
+    sha256 = "922894f04a2835131a24c3b3edcbf761273c1b37d3dc4e46d6923ee3856af130";
   };
 
   outputs = [
@@ -61,42 +62,42 @@ stdenv.mkDerivation rec {
     ./runtime-deps.patch
   ];
 
-  # FIXME: sphinx is needed for now to get man-pages
   nativeBuildInputs = [
     pkg-config
+    protobufc # dnstap support
     autoreconfHook
-    sphinx
+    tzdata # tests/contrib/test_time
   ];
-  buildInputs =
-    [
-      gnutls
-      liburcu
-      libidn2
-      libunistring
-      nettle
-      libedit
-      libiconv
-      lmdb
-      libintl
-      nghttp2 # DoH support in kdig
-      ngtcp2-gnutls # DoQ support in kdig (and elsewhere but not much use there yet)
-      libmaxminddb # optional for geoip module (it's tiny)
-      # without sphinx &al. for developer documentation
-      fstrm
-      protobufc # dnstap support
-    ]
-    ++ lib.optionals stdenv.hostPlatform.isLinux [
-      libcap_ng
-      systemd
-      xdp-tools
-      libbpf
-      libmnl # XDP support (it's Linux kernel API)
-    ]
-    ++ lib.optional stdenv.hostPlatform.isDarwin zlib; # perhaps due to gnutls
+  buildInputs = [
+    gnutls
+    liburcu
+    libidn2
+    libunistring
+    nettle
+    libedit
+    libiconv
+    lmdb
+    libintl
+    nghttp2 # DoH support in kdig
+    ngtcp2-gnutls # DoQ support in kdig (and elsewhere but not much use there yet)
+    libmaxminddb # optional for geoip module (it's tiny)
+    # without sphinx &al. for developer documentation
+    fstrm
+    protobufc # dnstap support
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [
+    libcap_ng
+    systemd
+    xdp-tools
+    libbpf
+    libmnl # XDP support (it's Linux kernel API)
+  ]
+  ++ lib.optional stdenv.hostPlatform.isDarwin zlib; # perhaps due to gnutls
 
   enableParallelBuilding = true;
+  strictDeps = true;
 
-  CFLAGS = [
+  env.CFLAGS = toString [
     "-O2"
     "-DNDEBUG"
   ];
@@ -111,33 +112,33 @@ stdenv.mkDerivation rec {
     rm -r "$out"/lib/*.la
   '';
 
-  passthru.tests =
-    {
-      inherit knot-resolver;
-    }
-    // lib.optionalAttrs stdenv.hostPlatform.isLinux {
-      inherit (nixosTests) knot kea;
-      prometheus-exporter = nixosTests.prometheus-exporters.knot;
-      # Some dependencies are very version-sensitive, so the might get dropped
-      # or embedded after some update, even if the nixPackagers didn't intend to.
-      # For non-linux I don't know a good replacement for `ldd`.
-      deps = runCommandLocal "knot-deps-test" { nativeBuildInputs = [ (lib.getBin stdenv.cc.libc) ]; } ''
-        for libname in libngtcp2 libxdp libbpf; do
-          echo "Checking for $libname:"
-          ldd '${knot-dns.bin}/bin/knotd' | grep -F "$libname"
-          echo "OK"
-        done
-        touch "$out"
-      '';
-    };
+  passthru.tests = {
+    inherit knot-resolver_5;
+  }
+  // lib.optionalAttrs stdenv.hostPlatform.isLinux {
+    inherit knot-resolver-manager_6; # not very reliable on non-Linux yet
+    inherit (nixosTests) knot kea;
+    prometheus-exporter = nixosTests.prometheus-exporters.knot;
+    # Some dependencies are very version-sensitive, so the might get dropped
+    # or embedded after some update, even if the nixPackagers didn't intend to.
+    # For non-linux I don't know a good replacement for `ldd`.
+    deps = runCommandLocal "knot-deps-test" { nativeBuildInputs = [ (lib.getBin stdenv.cc.libc) ]; } ''
+      for libname in libngtcp2 libxdp libbpf; do
+        echo "Checking for $libname:"
+        ldd '${knot-dns.bin}/bin/knotd' | grep -F "$libname"
+        echo "OK"
+      done
+      touch "$out"
+    '';
+  };
 
-  meta = with lib; {
+  meta = {
     description = "Authoritative-only DNS server from .cz domain registry";
     homepage = "https://knot-dns.cz";
-    changelog = "https://gitlab.nic.cz/knot/knot-dns/-/releases/v${version}";
-    license = licenses.gpl3Plus;
-    platforms = platforms.unix;
-    maintainers = [ maintainers.vcunat ];
+    changelog = "https://gitlab.nic.cz/knot/knot-dns/-/releases/v${finalAttrs.version}";
+    license = lib.licenses.gpl2Plus;
+    platforms = lib.platforms.unix;
+    maintainers = [ lib.maintainers.vcunat ];
     mainProgram = "knotd";
   };
-}
+})

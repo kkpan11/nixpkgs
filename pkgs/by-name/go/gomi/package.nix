@@ -4,15 +4,15 @@
   fetchFromGitHub,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "gomi";
-  version = "1.6.0";
+  version = "1.6.4";
 
   src = fetchFromGitHub {
-    owner = "b4b4r07";
+    owner = "babarot";
     repo = "gomi";
-    tag = "v${version}";
-    hash = "sha256-0C+us4GO8Jd51ATaaf0aRU3NnhmDvu0I3qDDXBoaiXU=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-25nwTqPGxGsDe2LutcZwIxswqhrV3ASD0l73UfYZV9Y=";
     # populate values that require us to use git. By doing this in postFetch we
     # can delete .git afterwards and maintain better reproducibility of the src.
     leaveDotGit = true;
@@ -24,14 +24,14 @@ buildGoModule rec {
     '';
   };
 
-  vendorHash = "sha256-8aw81DKBmgNsQzgtHCsUkok5e5+LeAC8BUijwKVT/0s=";
+  vendorHash = "sha256-NoiwYqDS+a5s9wOMT5setVjvFDZDFDDkvA2nyRi1XVQ=";
 
   subPackages = [ "." ];
 
   # Add version information fetched from the repository to ldflags.
-  # https://github.com/babarot/gomi/blob/v1.6.0/.goreleaser.yaml#L20-L22
+  # https://github.com/babarot/gomi/blob/v1.6.4/.goreleaser.yaml#L20-L22
   ldflags = [
-    "-X main.version=v${version}"
+    "-X main.version=v${finalAttrs.version}"
   ];
   preBuild = ''
     ldflags+=" -X main.revision=$(cat ldflags_revision)"
@@ -40,7 +40,7 @@ buildGoModule rec {
 
   meta = {
     description = "Replacement for UNIX rm command";
-    homepage = "https://github.com/b4b4r07/gomi";
+    homepage = "https://github.com/babarot/gomi";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [
       mimame
@@ -48,4 +48,4 @@ buildGoModule rec {
     ];
     mainProgram = "gomi";
   };
-}
+})

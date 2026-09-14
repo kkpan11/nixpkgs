@@ -11,17 +11,16 @@
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "tokei";
-  version = "13.0.0-alpha.8";
+  version = "15.0.0";
 
   src = fetchFromGitHub {
     owner = "XAMPPRocky";
     repo = "tokei";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-jCI9VM3y76RI65E5UGuAPuPkDRTMyi+ydx64JWHcGfE=";
+    hash = "sha256-VAFeMEuE4CdXRumj1TuHk5gu0QGbxTDY1Ys/tNeoGP4=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-LzlyrKaRjUo6JnVLQnHidtI4OWa+GrhAc4D8RkL+nmQ=";
+  cargoHash = "sha256-/1Hu/55KeLqfgHz6Q3cimfaLLwEiFksk34QGPPTU6tU=";
 
   buildInputs = lib.optionals stdenv.hostPlatform.isDarwin [ libiconv ];
 
@@ -31,10 +30,9 @@ rustPlatform.buildRustPackage (finalAttrs: {
   buildFeatures = [ "all" ];
 
   nativeInstallCheckInputs = [ versionCheckHook ];
-  versionCheckProgramArg = "--version";
   doInstallCheck = true;
 
-  passthru.updateScript = nix-update-script { extraArgs = [ "--version=unstable" ]; };
+  passthru.updateScript = nix-update-script { };
 
   meta = {
     description = "Count your code, quickly";

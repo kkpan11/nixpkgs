@@ -3,26 +3,24 @@
   lib,
   fetchFromGitHub,
   adwaita-icon-theme,
-  gnome-icon-theme,
   hicolor-icon-theme,
   gtk3,
 }:
 
 stdenvNoCC.mkDerivation {
   pname = "mint-l-icons";
-  version = "1.7.4";
+  version = "1.8.2";
 
   src = fetchFromGitHub {
     owner = "linuxmint";
     repo = "mint-l-icons";
     # They don't really do tags, this is just a named commit.
-    rev = "b442277c822c92f7bb68282cb82c7d1a98e3fd37";
-    hash = "sha256-vPDEribE/CZwoAK1C9fjbWQEO/NWMWCKCUO/Xw/SxZ0=";
+    rev = "5f5957bc87af839ffdcaa779d099b217bb6825a2";
+    hash = "sha256-9CwO0x9+hcUSZDviysn5EvH48oJuO6QhsfeNqWakm9M=";
   };
 
   propagatedBuildInputs = [
     adwaita-icon-theme
-    gnome-icon-theme
     hicolor-icon-theme
   ];
 
@@ -47,11 +45,11 @@ stdenvNoCC.mkDerivation {
     runHook postInstall
   '';
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/linuxmint/mint-l-icons";
     description = "Mint-L icon theme";
-    license = licenses.gpl3Plus; # from debian/copyright
-    platforms = platforms.linux;
-    teams = [ teams.cinnamon ];
+    license = lib.licenses.gpl3Plus; # from debian/copyright
+    platforms = lib.platforms.linux;
+    teams = [ lib.teams.cinnamon ];
   };
 }

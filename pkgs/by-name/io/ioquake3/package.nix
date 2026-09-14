@@ -17,22 +17,28 @@
   libjpeg,
   makeDesktopItem,
   freetype,
-  mumble,
   unstableGitUpdater,
+  bc,
+  cmake,
 }:
 
-stdenv.mkDerivation {
+stdenv.mkDerivation (finalAttrs: {
   pname = "ioquake3";
-  version = "0-unstable-2025-05-15";
+  version = "0-unstable-2026-07-19";
+
+  strictDeps = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "ioquake";
     repo = "ioq3";
-    rev = "8d2c2b42a55598d99873203194d13161ec2789c6";
-    hash = "sha256-OszPRlS5NTvajDZhtGw2wa275O8YodkIgiBz3POouYs=";
+    rev = "588393618dbc82e7207c21c6ddecca229944a03a";
+    hash = "sha256-BiyBg+Jy8V2v119NqcX/YUwDb8zZdq7+FfjWNenaEA4=";
   };
 
   nativeBuildInputs = [
+    bc
+    cmake
     copyDesktopItems
     makeBinaryWrapper
     pkg-config
@@ -41,33 +47,38 @@ stdenv.mkDerivation {
 
   buildInputs = [
     SDL2
-    libGL
-    openal
     curl
-    speex
-    opusfile
+    freetype
+    libGL
+    libjpeg
     libogg
     libvorbis
-    libjpeg
-    freetype
-    mumble
+    openal
+    opusfile
+    speex
   ];
 
   enableParallelBuilding = true;
 
-  preConfigure = ''
-    cp ${./Makefile.local} ./Makefile.local
-  '';
-
-  installTargets = [ "copyfiles" ];
-
-  installFlags = [ "COPYDIR=$(out)/share/ioquake3" ];
+  cmakeFlags = [
+    "-DCMAKE_INSTALL_PREFIX=${placeholder "out"}/share/ioquake3"
+    (lib.cmakeBool "USE_INTERNAL_LIBS" true)
+  ];
 
   postInstall = ''
-    install -Dm644 misc/quake3.svg $out/share/icons/hicolor/scalable/apps/ioquake3.svg
-
-    makeWrapper $out/share/ioquake3/ioquake3.* $out/bin/ioquake3
-    makeWrapper $out/share/ioquake3/ioq3ded.* $out/bin/ioq3ded
+    install -Dm644 ${finalAttrs.src}/misc/quake3.svg \
+      $out/share/icons/hicolor/scalable/apps/ioquake3.svg
+    makeWrapper $out/share/ioquake3/ioq3ded $out/bin/ioq3ded
+  ''
+  + lib.optionalString stdenv.hostPlatform.isLinux ''
+    makeWrapper $out/share/ioquake3/ioquake3 $out/bin/ioquake3
+  ''
+  + lib.optionalString stdenv.hostPlatform.isDarwin ''
+    mkdir -p $out/Applications
+    mv $out/share/ioquake3/ioquake3.app $out/Applications/
+    mkdir -p $out/bin
+    makeWrapper $out/Applications/ioquake3.app/Contents/MacOS/ioquake3 $out/bin/ioquake3
+    makeWrapper $out/share/ioquake3/ioq3ded $out/Applications/ioquake3.app/Contents/MacOS/ioq3ded
   '';
 
   desktopItems = [
@@ -75,7 +86,7 @@ stdenv.mkDerivation {
       name = "IOQuake3";
       exec = "ioquake3";
       icon = "ioquake3";
-      comment = "A fast-paced 3D first-person shooter, a community effort to continue supporting/developing id's Quake III Arena";
+      comment = finalAttrs.meta.description;
       desktopName = "ioquake3";
       categories = [
         "Game"
@@ -92,10 +103,8 @@ stdenv.mkDerivation {
     license = lib.licenses.gpl2Plus;
     mainProgram = "ioquake3";
     maintainers = with lib.maintainers; [
-      abbradar
-      drupol
       rvolosatovs
     ];
-    platforms = lib.platforms.linux;
+    platforms = lib.platforms.unix;
   };
-}
+})

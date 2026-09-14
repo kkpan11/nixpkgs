@@ -6,74 +6,40 @@
   nodejs,
   fixup-yarn-lock,
   yarn,
+  yarnConfigHook,
+  yarnBuildHook,
   makeWrapper,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "lasuite-docs-collaboration-server";
-  version = "3.3.0";
+  version = "5.6.1";
 
   src = fetchFromGitHub {
     owner = "suitenumerique";
     repo = "docs";
-    tag = "v${version}";
-    hash = "sha256-SLTNkK578YhsDtVBS4vH0E/rXx+rXZIyXMhqwr95QEA=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-4nTE7pjrheas/OdtHCLok8mw0ZhcDL1pL2VFekPgmdI=";
   };
 
-  sourceRoot = "source/src/frontend";
-
-  patches = [
-    # Support for $ENVIRONMENT_VARIABLE_FILE to be able to pass secret file
-    # See: https://github.com/suitenumerique/docs/pull/912
-    ./environment_variables.patch
-  ];
+  sourceRoot = "${finalAttrs.src.name}/src/frontend";
 
   offlineCache = fetchYarnDeps {
-    yarnLock = "${src}/src/frontend/yarn.lock";
-    hash = "sha256-ei4xj+W2j5O675cpMAG4yCB3cPLeYwMhqKTacPWFjoo=";
+    yarnLock = "${finalAttrs.src}/src/frontend/yarn.lock";
+    hash = "sha256-fbq8XxqNCp2/Y8VE1OxdAdcfcCMwu721OByXzsyWnqM=";
   };
 
   nativeBuildInputs = [
     nodejs
     fixup-yarn-lock
     yarn
+    yarnConfigHook
+    yarnBuildHook
     makeWrapper
   ];
 
-  configurePhase = ''
-    runHook preConfigure
-
-    export HOME=$(mktemp -d)
-    yarn config --offline set yarn-offline-mirror "$offlineCache"
-    fixup-yarn-lock yarn.lock
-
-    # Fixup what fixup-yarn-lock does not fix. Result in error if not fixed.
-    substituteInPlace yarn.lock \
-      --replace-fail '"@fastify/otel@https://codeload.github.com/getsentry/fastify-otel/tar.gz/ae3088d65e286bdc94ac5d722573537d6a6671bb"' '"@fastify/otel@^0.8.0"'
-
-    yarn install \
-        --frozen-lockfile \
-        --force \
-        --production=false \
-        --ignore-engines \
-        --ignore-platform \
-        --ignore-scripts \
-        --no-progress \
-        --non-interactive \
-        --offline
-
-    patchShebangs node_modules
-
-    runHook postConfigure
-  '';
-
-  buildPhase = ''
-    runHook preBuild
-
-    yarn --offline COLLABORATION_SERVER run build
-
-    runHook postBuild
-  '';
+  yarnBuildScript = "COLLABORATION_SERVER";
+  yarnBuildFlags = "run build";
 
   installPhase = ''
     runHook preInstall
@@ -89,12 +55,15 @@ stdenv.mkDerivation rec {
   '';
 
   meta = {
-    description = "A collaborative note taking, wiki and documentation platform that scales. Built with Django and React. Opensource alternative to Notion or Outline";
+    description = "Collaborative note taking, wiki and documentation platform that scales. Built with Django and React. Opensource alternative to Notion or Outline";
     homepage = "https://github.com/suitenumerique/docs";
-    changelog = "https://github.com/suitenumerique/docs/blob/${src.tag}/CHANGELOG.md";
+    changelog = "https://github.com/suitenumerique/docs/blob/${finalAttrs.src.tag}/CHANGELOG.md";
     mainProgram = "docs-collaboration-server";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ soyouzpanda ];
-    platforms = lib.platforms.all;
+    maintainers = with lib.maintainers; [
+      soyouzpanda
+      ma27
+    ];
+    platforms = lib.platforms.linux;
   };
-}
+})

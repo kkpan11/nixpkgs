@@ -3,39 +3,48 @@
   stdenv,
   fetchFromGitHub,
   cmake,
+  nix-update-script,
+  testers,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "simdjson";
-  version = "3.12.3";
+  version = "4.6.8";
 
   src = fetchFromGitHub {
     owner = "simdjson";
     repo = "simdjson";
-    rev = "v${version}";
-    sha256 = "sha256-/FfaM5BTWKrt2m70+VcUXz//RiZuzxnUOaHOjPJWsGw=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-ZMYYjwyeqqlklwY4UWBgT5sJ0Ojkg38Xcxg6CO461Ec=";
   };
 
   nativeBuildInputs = [ cmake ];
 
-  cmakeFlags =
-    [
-      "-DSIMDJSON_DEVELOPER_MODE=OFF"
-    ]
-    ++ lib.optionals stdenv.hostPlatform.isStatic [
-      "-DBUILD_SHARED_LIBS=OFF"
-    ]
-    ++ lib.optionals (with stdenv.hostPlatform; isPower && isBigEndian) [
-      # Assume required CPU features are available, since otherwise we
-      # just get a failed build.
-      "-DCMAKE_CXX_FLAGS=-mpower8-vector"
-    ];
+  cmakeFlags = [
+    (lib.cmakeBool "SIMDJSON_DEVELOPER_MODE" false)
+    (lib.cmakeBool "BUILD_SHARED_LIBS" (!stdenv.hostPlatform.isStatic))
+  ]
+  ++ lib.optionals (with stdenv.hostPlatform; isPower && isBigEndian) [
+    # Assume required CPU features are available, since otherwise we
+    # just get a failed build.
+    (lib.cmakeFeature "CMAKE_CXX_FLAGS" "-mpower8-vector")
+  ];
 
-  meta = with lib; {
-    homepage = "https://simdjson.org/";
-    description = "Parsing gigabytes of JSON per second";
-    license = licenses.asl20;
-    platforms = platforms.all;
-    maintainers = with maintainers; [ chessai ];
+  passthru = {
+    updateScript = nix-update-script { };
+
+    tests.pkg-config = testers.hasPkgConfigModules {
+      package = finalAttrs.finalPackage;
+    };
   };
-}
+
+  meta = {
+    homepage = "https://simdjson.org/";
+    changelog = "https://github.com/simdjson/simdjson/releases/tag/${finalAttrs.src.tag}";
+    description = "Parsing gigabytes of JSON per second";
+    license = lib.licenses.asl20;
+    platforms = lib.platforms.all;
+    maintainers = with lib.maintainers; [ chessai ];
+    pkgConfigModules = [ "simdjson" ];
+  };
+})

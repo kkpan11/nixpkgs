@@ -3,43 +3,42 @@
   stdenv,
   buildPythonPackage,
   fetchPypi,
-  pythonOlder,
 
   # build-system
   setuptools,
 
   # tests
-  pandas,
   pytestCheckHook,
+
+  # extra tests
+  openpyxl,
+  pandas,
+  xlrd,
 }:
+let
+  self = buildPythonPackage (finalAttrs: {
+    pname = "pyfakefs";
+    version = "6.2.0";
+    pyproject = true;
 
-buildPythonPackage rec {
-  pname = "pyfakefs";
-  version = "5.8.0";
-  pyproject = true;
+    src = fetchPypi {
+      inherit (finalAttrs) pname version;
+      hash = "sha256-5Zo220R79QnOnJerPRUQwIzFGJXFMRMlpWCl5bXcGUA=";
+    };
 
-  disabled = pythonOlder "3.5";
+    build-system = [ setuptools ];
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-flRX7jzGcGnTzvbieCJ+z8gL+2HpJbwKTTsK8y0cmc4=";
-  };
+    pythonImportsCheck = [ "pyfakefs" ];
 
-  build-system = [ setuptools ];
+    nativeCheckInputs = [
+      pytestCheckHook
+    ];
 
-  pythonImportsCheck = [ "pyfakefs" ];
+    enabledTestPaths = [
+      "pyfakefs/tests"
+    ];
 
-  nativeCheckInputs = [
-    pandas
-    pytestCheckHook
-  ];
-
-  pytestFlagsArray = [
-    "pyfakefs/tests"
-  ];
-
-  disabledTests =
-    [
+    disabledTests = [
       "test_expand_root"
     ]
     ++ (lib.optionals stdenv.hostPlatform.isDarwin [
@@ -47,11 +46,25 @@ buildPythonPackage rec {
       "test_rename_dir_to_existing_dir"
     ]);
 
-  meta = with lib; {
-    description = "Fake file system that mocks the Python file system modules";
-    homepage = "https://pyfakefs.org/";
-    changelog = "https://github.com/jmcgeheeiv/pyfakefs/blob/v${version}/CHANGES.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
-  };
-}
+    # Keep the big pandas 'extra' dependency outside the standard build: providing it enables only two additional tests
+    # The other two members of the 'extra' group (xlrd and openpyxl) enable two more tests
+    passthru.tests.extra = self.overridePythonAttrs (prevPythonAttrs: {
+      nativeCheckInputs = prevPythonAttrs.nativeCheckInputs ++ [
+        pandas
+        xlrd
+        openpyxl
+      ];
+    });
+
+    __structuredAttrs = true;
+
+    meta = {
+      description = "Fake file system that mocks the Python file system modules";
+      homepage = "https://pyfakefs.org/";
+      changelog = "https://github.com/jmcgeheeiv/pyfakefs/blob/v${finalAttrs.version}/CHANGES.md";
+      license = lib.licenses.asl20;
+      maintainers = [ ];
+    };
+  });
+in
+self

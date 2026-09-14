@@ -8,29 +8,23 @@
 
 let
   pname = "hamrs-pro";
-  version = "2.38.0";
+  version = "2.52.0";
 
   throwSystem = throw "Unsupported system: ${stdenvNoCC.hostPlatform.system}";
 
   srcs = {
     x86_64-linux = fetchurl {
       url = "https://hamrs-dist.s3.amazonaws.com/hamrs-pro-${version}-linux-x86_64.AppImage";
-      hash = "sha256-G9zap1AaPZepIajZHbUDMODJ7l+7JSD8oJq7EecmE+M=";
+      hash = "sha256-Zh/6F2vHGz8Aih4ld34ylKT5y5IuPbgnoAj8V6Z5lsk=";
     };
 
     aarch64-linux = fetchurl {
       url = "https://hamrs-dist.s3.amazonaws.com/hamrs-pro-${version}-linux-arm64.AppImage";
-      hash = "sha256-eVt2ciWFTKJdV0YoQyU98DD90aMUoOWTqzbZ/s0G+0E=";
+      hash = "sha256-beOod63aKwfd1NrS7Or1p4KH5+KMdJ4AGo0mqIGDq9g=";
     };
-
-    x86_64-darwin = fetchurl {
-      url = "https://hamrs-dist.s3.amazonaws.com/hamrs-pro-${version}-mac-x64.dmg";
-      hash = "sha256-ggWnB5QcJM9bsOyyVe9dSvOU63hr8heWQTE6ncPgriU=";
-    };
-
     aarch64-darwin = fetchurl {
       url = "https://hamrs-dist.s3.amazonaws.com/hamrs-pro-${version}-mac-arm64.dmg";
-      hash = "sha256-s8Ly1UYBy0EzUCKUCJxx1PcxVQe2gkeuXDudqnSuYjE=";
+      hash = "sha256-M8JohJkY1U5NQHCiMg82pPhSH/bf1Hah+9jye9P8EzE=";
     };
   };
 
@@ -51,7 +45,6 @@ let
       "x86_64-linux"
       "aarch64-linux"
       "aarch64-darwin"
-      "x86_64-darwin"
     ];
   };
 

@@ -14,31 +14,31 @@
   libiconv,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "elan";
-  version = "4.1.2";
+  version = "4.2.4";
 
   src = fetchFromGitHub {
     owner = "leanprover";
     repo = "elan";
-    rev = "v${version}";
-    hash = "sha256-1pEa3uFO1lncCjOHEDM84A0p6xoOfZnU+OCS2j8cCK8=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-HojR0Q8J1nrTk7tA3kcQ8Y3kYzrrl2nAlD0kUo2EgPw=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-CLeFXpCfaTTgbr6jmUmewArKfkOquNhjlIlwtoaJfZw=";
+  cargoHash = "sha256-dgqIu3SM134g/qLsetOLxed8/gAG8i90IKEy6xnK2rg=";
 
   nativeBuildInputs = [
     pkg-config
     makeWrapper
   ];
 
-  OPENSSL_NO_VENDOR = 1;
+  env.OPENSSL_NO_VENDOR = 1;
   buildInputs = [
     curl
     zlib
     openssl
-  ] ++ lib.optional stdenv.hostPlatform.isDarwin libiconv;
+  ]
+  ++ lib.optional stdenv.hostPlatform.isDarwin libiconv;
 
   buildFeatures = [ "no-self-update" ];
 
@@ -81,15 +81,15 @@ rustPlatform.buildRustPackage rec {
     $out/bin/elan completions zsh >  "$out/share/zsh/site-functions/_elan"
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Small tool to manage your installations of the Lean theorem prover";
     homepage = "https://github.com/leanprover/elan";
-    changelog = "https://github.com/leanprover/elan/blob/v${version}/CHANGELOG.md";
-    license = with licenses; [
+    changelog = "https://github.com/leanprover/elan/blob/v${finalAttrs.version}/CHANGELOG.md";
+    license = with lib.licenses; [
       asl20 # or
       mit
     ];
-    maintainers = with maintainers; [ ];
+    maintainers = [ ];
     mainProgram = "elan";
   };
-}
+})

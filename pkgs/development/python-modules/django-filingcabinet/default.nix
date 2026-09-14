@@ -29,24 +29,29 @@
   poppler-utils,
   pytest-playwright,
   playwright-driver,
-  pnpm,
+  fetchPnpmDeps,
+  pnpmConfigHook,
+  pnpm_11,
   nodejs,
   markdown,
   nh3,
 }:
-
-buildPythonPackage rec {
+let
+  pnpm = pnpm_11;
+in
+buildPythonPackage (finalAttrs: {
   pname = "django-filingcabinet";
-  version = "0.17-unstable-2025-04-10";
+  version = "0.17-unstable-2026-05-07";
   pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "okfde";
     repo = "django-filingcabinet";
     # No release tagged yet on GitHub
     # https://github.com/okfde/django-filingcabinet/issues/69
-    rev = "64b7b4ad804067e2f16e8a0f165c139e3ffe5fb5";
-    hash = "sha256-48Peui/5N/GfzWS1EJ5uKeKEoPjX+fPEXzG2owxsDaE=";
+    rev = "53fe999d9c984bed84bf0e76aca5d0dab9d2954b";
+    hash = "sha256-RIl3x6UrcS9IIlnKanI+XIjPPJeBDPsrlMdMDEREEbg=";
   };
 
   postPatch = ''
@@ -60,7 +65,8 @@ buildPythonPackage rec {
 
   nativeBuildInputs = [
     nodejs
-    pnpm.configHook
+    pnpmConfigHook
+    pnpm
   ];
 
   dependencies = [
@@ -92,9 +98,14 @@ buildPythonPackage rec {
     #annotate = [ fcdocs-annotate ];
   };
 
-  pnpmDeps = pnpm.fetchDeps {
-    inherit pname version src;
-    hash = "sha256-uMO2iEOi9ACYdIM8Thf7+y1KpHQEqVxO3yxZ8RaGFXA=";
+  pnpmDeps = fetchPnpmDeps {
+    inherit (finalAttrs)
+      pname
+      version
+      src
+      ;
+    fetcherVersion = 4;
+    hash = "sha256-7MZIp4OD+h0G77U0GT7vblQ4fX53sg6xHE2fjie/90U=";
   };
 
   postBuild = ''
@@ -124,13 +135,12 @@ buildPythonPackage rec {
     "test_document_viewer"
   ];
 
-  preCheck =
-    ''
-      export DJANGO_SETTINGS_MODULE="test_project.settings"
-    ''
-    + lib.optionalString (!stdenv.hostPlatform.isRiscV) ''
-      export PLAYWRIGHT_BROWSERS_PATH="${playwright-driver.browsers}"
-    '';
+  preCheck = ''
+    export DJANGO_SETTINGS_MODULE="test_project.settings"
+  ''
+  + lib.optionalString (!stdenv.hostPlatform.isRiscV) ''
+    export PLAYWRIGHT_BROWSERS_PATH="${playwright-driver.browsers}"
+  '';
 
   pythonImportsCheck = [ "filingcabinet" ];
 
@@ -140,8 +150,8 @@ buildPythonPackage rec {
   meta = {
     description = "Django app that manages documents with pages, annotations and collections";
     homepage = "https://github.com/okfde/django-filingcabinet";
-    changelog = "https://github.com/feincms/django-cabinet/blob/${version}/CHANGELOG.rst";
+    changelog = "https://github.com/feincms/django-cabinet/blob/${finalAttrs.version}/CHANGELOG.rst";
     license = lib.licenses.mit;
     maintainers = [ lib.maintainers.onny ];
   };
-}
+})

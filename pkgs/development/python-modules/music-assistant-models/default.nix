@@ -2,11 +2,13 @@
   lib,
   buildPythonPackage,
   fetchFromGitHub,
+  pyprojectVersionPatchHook,
 
   # build-system
   setuptools,
 
   # dependencies
+  anyascii,
   mashumaro,
   orjson,
 
@@ -15,29 +17,30 @@
   pytest-cov-stub,
 
   # reverse dependencies
+  music-assistant,
   music-assistant-client,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "music-assistant-models";
-  version = "1.1.43"; # Must be compatible with music-assistant-client package
+  # Must be compatible with music-assistant-client package
+  # nixpkgs-update: no auto update
+  version = "1.1.189";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "music-assistant";
     repo = "models";
-    tag = version;
-    hash = "sha256-0SBNxpiBAKlAQe7eJTp+BwGNY52OTt37TksKrp9nfz4=";
+    tag = finalAttrs.version;
+    hash = "sha256-oB2ifUUysaJU/nUyTip0C06QujoFSjgowctadIHxDiQ=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace-fail "0.0.0" "${version}"
-  '';
+  nativeBuildInputs = [ pyprojectVersionPatchHook ];
 
   build-system = [ setuptools ];
 
   dependencies = [
+    anyascii
     mashumaro
     orjson
   ];
@@ -52,14 +55,14 @@ buildPythonPackage rec {
   ];
 
   passthru.tests = {
-    inherit music-assistant-client;
+    inherit music-assistant music-assistant-client;
   };
 
   meta = {
-    description = "Models used by Music Assistant (shared by client and server";
+    description = "Models used by Music Assistant (shared by client and server)";
     homepage = "https://github.com/music-assistant/models";
-    changelog = "https://github.com/music-assistant/models/blob/${src.tag}/CHANGELOG.md";
+    changelog = "https://github.com/music-assistant/models/releases/tag/${finalAttrs.src.tag}";
     license = lib.licenses.asl20;
-    maintainers = with lib.maintainers; [ ];
+    maintainers = [ ];
   };
-}
+})

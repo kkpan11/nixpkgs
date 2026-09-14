@@ -9,11 +9,9 @@
   pyface,
   pygments,
   pyqt5,
-  pythonOlder,
-  pythonAtLeast,
+  qt5,
   traitsui,
   vtk,
-  wrapQtAppsHook,
 }:
 
 buildPythonPackage rec {
@@ -21,14 +19,12 @@ buildPythonPackage rec {
   version = "4.8.3";
   format = "setuptools";
 
-  disabled = pythonOlder "3.8";
-
   src = fetchPypi {
     inherit pname version;
     hash = "sha256-72nMvfWPIPGzlJMNXjoW3aSxo5rcvHb3mr0mSD0prPU=";
   };
 
-  nativeBuildInputs = [ wrapQtAppsHook ];
+  nativeBuildInputs = [ qt5.wrapQtAppsHook ];
 
   propagatedBuildInputs = [
     apptools
@@ -56,11 +52,11 @@ buildPythonPackage rec {
   # stripping the ico file on macos cause segfault
   stripExclude = [ "*.ico" ];
 
-  meta = with lib; {
+  meta = {
     description = "3D visualization of scientific data in Python";
     homepage = "https://github.com/enthought/mayavi";
-    license = licenses.bsdOriginal;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsdOriginal;
+    maintainers = [ ];
     mainProgram = "mayavi2";
   };
 }

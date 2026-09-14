@@ -10,14 +10,14 @@
 
 buildPythonPackage rec {
   pname = "synapse-http-antispam";
-  version = "0.4.0";
+  version = "0.5.1";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "maunium";
     repo = "synapse-http-antispam";
     tag = "v${version}";
-    hash = "sha256-YvgHIZ5Kr9WsX30QN8W5OJ4sxLB7EsLqUmCye3x+JQA=";
+    hash = "sha256-+DgmSSt5EUP47c5X7iBSZJc/kx8pN65r+tRDqqQfx5M=";
   };
 
   build-system = [ hatchling ];

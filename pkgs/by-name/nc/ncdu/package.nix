@@ -1,27 +1,37 @@
 {
   lib,
   stdenv,
-  fetchurl,
   ncurses,
+  fetchFromGitHub,
   pkg-config,
-  zig_0_14,
+  zig_0_16,
+  nix-update-script,
   zstd,
   installShellFiles,
   versionCheckHook,
   pie ? stdenv.hostPlatform.isDarwin,
 }:
 
+let
+  zig = zig_0_16;
+in
+
 stdenv.mkDerivation (finalAttrs: {
   pname = "ncdu";
-  version = "2.8.2";
+  version = "2.11.1";
 
-  src = fetchurl {
-    url = "https://dev.yorhel.nl/download/ncdu-${finalAttrs.version}.tar.gz";
-    hash = "sha256-Ai+nZdNaeXl6zcgMgxcH30PJo7pg0a4+bqTMG3osAT0=";
+  src = fetchFromGitHub {
+    owner = "BratishkaErik";
+    repo = "ncdu";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-Fd7Drw+7vygY9t75B3O0inZPhiGAeUgmpLyq3ymbFSU=";
   };
 
+  __structuredAttrs = true;
+  strictDeps = true;
+
   nativeBuildInputs = [
-    zig_0_14.hook
+    zig
     installShellFiles
     pkg-config
   ];
@@ -31,29 +41,43 @@ stdenv.mkDerivation (finalAttrs: {
     zstd
   ];
 
-  zigBuildFlags = lib.optional pie "-Dpie=true";
+  zigDeps = zig.fetchDeps {
+    inherit (finalAttrs) pname version src;
+    fetchAll = true;
+    hash = "sha256-plS7YUHWysZCQ1hHVWlgKvZkDtnjYSFfi3fdMYJVI9I=";
+  };
+
+  postConfigure = ''
+    ln -s ${finalAttrs.zigDeps} "$ZIG_GLOBAL_CACHE_DIR/p"
+  '';
+
+  zigBuildFlags = [
+    "-fsys=ncurses"
+    "-fsys=zstd"
+  ]
+  ++ lib.optional pie "-Dpie=true";
 
   postInstall = ''
     installManPage ncdu.1
   '';
 
   nativeInstallCheckInputs = [ versionCheckHook ];
-  versionCheckProgramArg = "--version";
   doInstallCheck = true;
 
-  passthru.updateScript = ./update.sh;
+  passthru.updateScript = nix-update-script { };
 
   meta = {
-    homepage = "https://dev.yorhel.nl/ncdu";
+    homepage = "https://github.com/BratishkaErik/ncdu";
     description = "Disk usage analyzer with an ncurses interface";
-    changelog = "https://dev.yorhel.nl/ncdu/changes2";
+    changelog = "https://github.com/BratishkaErik/ncdu/releases/${finalAttrs.src.tag}";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [
       pSub
       rodrgz
       defelo
+      ryan4yin
     ];
-    inherit (zig_0_14.meta) platforms;
+    inherit (zig.meta) platforms;
     mainProgram = "ncdu";
   };
 })

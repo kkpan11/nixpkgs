@@ -9,16 +9,16 @@
   efibootmgr,
   makeWrapper,
 }:
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "system76-firmware";
   # Check Makefile when updating, make sure postInstall matches make install
-  version = "1.0.71";
+  version = "1.0.78";
 
   src = fetchFromGitHub {
     owner = "pop-os";
     repo = "system76-firmware";
-    rev = version;
-    sha256 = "sha256-z4n1olvOSiJfHnEixUaWfz86519SntHfECOtWSeI4vk=";
+    rev = finalAttrs.version;
+    sha256 = "sha256-3fwMEbKjyyxv9s/p9PjSLt5qdVZGJy8B0FmGBmr89+w=";
   };
 
   nativeBuildInputs = [
@@ -34,8 +34,7 @@ rustPlatform.buildRustPackage rec {
 
   cargoBuildFlags = [ "--workspace" ];
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-YgDWaxrEfG1xxZOqa7tk2NaPVfMIqoMNZdjejkY6Jow=";
+  cargoHash = "sha256-Yy5WFRmrrmo0FuO8n18Bf6YJzYV82Z4kLfJ/zNGuAkI=";
 
   # Purposefully don't install systemd unit file, that's for NixOS
   postInstall = ''
@@ -47,14 +46,14 @@ rustPlatform.buildRustPackage rec {
     done
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Tools for managing firmware updates for system76 devices";
     homepage = "https://github.com/pop-os/system76-firmware";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ shlevy ];
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ shlevy ];
     platforms = [
       "i686-linux"
       "x86_64-linux"
     ];
   };
-}
+})

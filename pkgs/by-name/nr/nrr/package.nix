@@ -5,19 +5,18 @@
   enableLTO ? true,
   nrxAlias ? true,
 }:
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "nrr";
-  version = "0.10.2";
+  version = "0.11.0";
 
   src = fetchFromGitHub {
     owner = "ryanccn";
     repo = "nrr";
-    rev = "v${version}";
-    hash = "sha256-qh4YEfdfO6WofdrFHVDvkNocloK2LuWelfZPilxiKPk=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-wkt2F7drBxi4AJhJXvlxpD/CVZuQ2M3wL6IqZ72m3vI=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-f8ugfkTtS23TLh0Ss4SpxGy1Y9AeqinE+psDmHVHibg=";
+  cargoHash = "sha256-uOPkTAypThZPof2DaBS/uGJThlV179jNj0SkSJ0X6r8=";
 
   env = lib.optionalAttrs enableLTO {
     CARGO_PROFILE_RELEASE_LTO = "fat";
@@ -26,11 +25,11 @@ rustPlatform.buildRustPackage rec {
 
   postInstall = lib.optionalString nrxAlias "ln -s $out/bin/nr{r,x}";
 
-  meta = with lib; {
+  meta = {
     description = "Minimal, blazing fast npm scripts runner";
     homepage = "https://github.com/ryanccn/nrr";
-    maintainers = with maintainers; [ ryanccn ];
-    license = licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ ryanccn ];
+    license = lib.licenses.gpl3Only;
     mainProgram = "nrr";
   };
-}
+})

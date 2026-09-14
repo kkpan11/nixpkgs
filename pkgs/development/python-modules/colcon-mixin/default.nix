@@ -3,7 +3,7 @@
   buildPythonPackage,
   fetchFromGitHub,
   colcon,
-  pytest-cov,
+  pytest-cov-stub,
   pytestCheckHook,
   setuptools,
   scspell,
@@ -12,14 +12,14 @@
 
 buildPythonPackage rec {
   pname = "colcon-mixin";
-  version = "0.2.3";
+  version = "0.3.0";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "colcon";
     repo = "colcon-mixin";
     tag = version;
-    hash = "sha256-XQpRDBTtrFOOlCRXKVImUtwrwirO0ELWifUpfQuyrrY=";
+    hash = "sha256-MLK8ogTzlqi/5wgrS0gh9fm/oljk4BGvJwI9JrYj//M=";
   };
 
   build-system = [ setuptools ];
@@ -29,7 +29,7 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
-    pytest-cov
+    pytest-cov-stub
     pytestCheckHook
     scspell
     writableTmpDirAsHomeHook

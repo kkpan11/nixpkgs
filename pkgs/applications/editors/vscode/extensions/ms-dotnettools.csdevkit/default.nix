@@ -16,19 +16,15 @@ let
     {
       x86_64-linux = {
         arch = "linux-x64";
-        hash = "sha256-XHx64V8JJl+/kb+kkTowu7mE7ysBRhUQJqicxjbHM3k=";
+        hash = "sha256-N3W/cvqAzf7Z9jMjiHN9zWrHXZjIqD1RnuZbZ/yQx8g=";
       };
       aarch64-linux = {
         arch = "linux-arm64";
-        hash = "sha256-Pm3jUARrH8bksiCpYtUvo0UB3Oq67EjJGYLGLV54rl4=";
-      };
-      x86_64-darwin = {
-        arch = "darwin-x64";
-        hash = "sha256-hgd7tpRn2WP0PL4IOpZLL6Uzw1V9rSqlOTDfgFxwWGk=";
+        hash = "sha256-1zz9xrMALIOXzMpArWSwO12WmRE+0ldbIwUFH1G2GQI=";
       };
       aarch64-darwin = {
         arch = "darwin-arm64";
-        hash = "sha256-PQPxwwHbLXa5+p/SfH4IFu/OBEa/1CKdfaM+HAegiDA=";
+        hash = "sha256-F4CsyiX46SpjilJNV+qYps1JAw09pVruLmW+muN9/B4=";
       };
     }
     .${stdenv.hostPlatform.system} or (throw "Unsupported system: ${stdenv.hostPlatform.system}")
@@ -38,7 +34,7 @@ vscode-utils.buildVscodeMarketplaceExtension {
   mktplcRef = {
     name = "csdevkit";
     publisher = "ms-dotnettools";
-    version = "1.19.63";
+    version = "3.10.14";
     inherit (extInfo) hash arch;
   };
   sourceRoot = "extension"; # This has more than one folder.
@@ -63,7 +59,7 @@ vscode-utils.buildVscodeMarketplaceExtension {
 
     substituteInPlace dist/extension.js \
       --replace-fail 'e.extensionPath,"cache"' 'require("os").tmpdir(),"'"$ext_unique_id"'"' \
-      --replace-fail 't.setExecuteBit=async function(e){if("win32"!==process.platform){const t=i.join(e[a.SERVICEHUB_CONTROLLER_COMPONENT_NAME],"Microsoft.VisualStudio.Code.ServiceController"),r=i.join(e[a.SERVICEHUB_HOST_COMPONENT_NAME],(0,a.getServiceHubHostEntrypointName)()),n=[(0,a.getServerPath)(e),t,r,(0,c.getReliabilityMonitorPath)(e)];await Promise.all(n.map((e=>(0,o.chmod)(e,"0755"))))}}' 't.setExecuteBit=async function(e){}'
+      --replace-fail 't.setExecuteBit=async function(e){if("win32"!==process.platform){const t=o.join(e[a.SERVICEHUB_CONTROLLER_COMPONENT_NAME],"Microsoft.VisualStudio.Code.ServiceController"),r=o.join(e[a.SERVICEHUB_HOST_COMPONENT_NAME],(0,a.getServiceHubHostEntrypointName)()),n=[(0,a.getServerPath)(e),t,r,(0,c.getReliabilityMonitorPath)(e)];await Promise.all(n.map((e=>(0,i.chmod)(e,"0755"))))}}' 't.setExecuteBit=async function(e){}'
   '';
 
   preFixup = ''
@@ -121,6 +117,10 @@ vscode-utils.buildVscodeMarketplaceExtension {
             --add-needed libssl.so \
             "$file"
         done
+
+        # Fix libxml2 breakage. See https://github.com/NixOS/nixpkgs/pull/396195#issuecomment-2881757108
+        mkdir -p "$out/lib"
+        ln -s "${lib.getLib libxml2}/lib/libxml2.so" "$out/lib/libxml2.so.2"
       ''}
     )
   '';
@@ -130,11 +130,10 @@ vscode-utils.buildVscodeMarketplaceExtension {
     description = "Official Visual Studio Code extension for C# from Microsoft";
     downloadPage = "https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit";
     license = lib.licenses.unfree;
-    maintainers = with lib.maintainers; [ ggg ];
+    maintainers = [ ];
     platforms = [
       "x86_64-linux"
       "aarch64-linux"
-      "x86_64-darwin"
       "aarch64-darwin"
     ];
   };

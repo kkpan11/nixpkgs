@@ -1,29 +1,38 @@
 {
   lib,
-  stdenv,
-  fetchFromGitHub,
   boost,
+  bzip2,
   cmake,
+  enablePython ? true,
+  fetchFromGitHub,
+  fmt,
   giflib,
+  libheif,
   libjpeg,
+  libjxl,
   libpng,
   libtiff,
+  libultrahdr,
+  libwebp,
   opencolorio,
   openexr,
+  openjph,
+  ptex,
+  python3Packages,
   robin-map,
+  stdenv,
   unzip,
-  fmt,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "openimageio";
-  version = "3.0.6.1";
+  version = "3.1.17.0";
 
   src = fetchFromGitHub {
     owner = "AcademySoftwareFoundation";
     repo = "OpenImageIO";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-ymg7uSnPBKotnV6/FaVBIndsz6oEP5gfZ1+poMIdR4I=";
+    hash = "sha256-wubIGLrp3FdYEWc61EyAV6lzG+HmOja/XTvqNgi8jMo=";
   };
 
   outputs = [
@@ -40,21 +49,29 @@ stdenv.mkDerivation (finalAttrs: {
 
   buildInputs = [
     boost
+    bzip2
     giflib
+    libheif
     libjpeg
+    libjxl
     libpng
     libtiff
+    libwebp
+    libultrahdr
     opencolorio
     openexr
+    openjph
+    ptex
     robin-map
-  ];
+  ]
+  ++ lib.optional enablePython python3Packages.pybind11;
 
   propagatedBuildInputs = [
     fmt
   ];
 
   cmakeFlags = [
-    "-DUSE_PYTHON=OFF"
+    (lib.cmakeBool "USE_PYTHON" enablePython)
     "-DUSE_QT=OFF"
     # GNUInstallDirs
     "-DCMAKE_INSTALL_LIBDIR=lib" # needs relative path for pkg-config

@@ -14,6 +14,11 @@ let
     value = lib.singleton k;
   }) hosts;
 
+  hostsDns = {
+    type = "hosts";
+    tag = "dns:hosts";
+  };
+
   vmessPort = 1080;
   vmessUUID = "bf000d23-0752-40b4-affe-68f7707a9661";
   vmessInbound = {
@@ -57,8 +62,6 @@ let
       "${hosts."${server_host}"}/32"
     ];
     strict_route = false;
-    sniff = true;
-    sniff_override_destination = false;
   };
 
   tproxyPort = 1081;
@@ -113,7 +116,10 @@ in
   name = "sing-box";
 
   meta = {
-    maintainers = with lib.maintainers; [ nickcao ];
+    maintainers = with lib.maintainers; [
+      nickcao
+      prince213
+    ];
   };
 
   nodes = {
@@ -138,7 +144,6 @@ in
 
         services.nginx = {
           enable = true;
-          package = pkgs.nginxQuic;
 
           virtualHosts."${target_host}" = {
             onlySSL = true;
@@ -219,6 +224,9 @@ in
                 tag = "outbound:direct";
               }
             ];
+            route = {
+              default_interface = "eth1";
+            };
           };
         };
       };
@@ -245,13 +253,17 @@ in
         ];
 
         environment.systemPackages = [
-          pkgs.curlHTTP3
+          pkgs.curl
           pkgs.iproute2
         ];
 
         services.sing-box = {
           enable = true;
           settings = {
+            dns = {
+              final = hostsDns.tag;
+              servers = [ hostsDns ];
+            };
             inbounds = [
               tunInbound
             ];
@@ -267,6 +279,8 @@ in
               vmessOutbound
             ];
             route = {
+              default_domain_resolver = hostsDns.tag;
+              default_interface = "eth1";
               final = "outbound:block";
               rules = [
                 {
@@ -303,38 +317,55 @@ in
         ];
 
         environment.systemPackages = [
-          pkgs.curlHTTP3
+          pkgs.curl
           pkgs.iproute2
         ];
 
         services.sing-box = {
           enable = true;
           settings = {
+            dns = {
+              final = hostsDns.tag;
+              servers = [ hostsDns ];
+            };
+            inbounds = [
+              tunInbound
+            ];
             outbounds = [
               {
                 type = "block";
                 tag = "outbound:block";
               }
+            ];
+            endpoints = [
               {
-                type = "direct";
-                tag = "outbound:direct";
-              }
-              {
-                detour = "outbound:direct";
                 type = "wireguard";
                 tag = "outbound:wireguard";
-                interface_name = "wg0";
-                local_address = [ "10.23.42.2/32" ];
+                address = [ "10.23.42.2/32" ];
                 mtu = 1280;
                 private_key = wg-keys.peer1.privateKey;
-                peer_public_key = wg-keys.peer0.publicKey;
-                server = server_host;
-                server_port = 2408;
-                system_interface = true;
+                peers = [
+                  {
+                    address = server_host;
+                    port = 2408;
+                    public_key = wg-keys.peer0.publicKey;
+                    allowed_ips = [ "0.0.0.0/0" ];
+                  }
+                ];
               }
             ];
             route = {
+              default_domain_resolver = hostsDns.tag;
+              default_interface = "eth1";
               final = "outbound:block";
+              rules = [
+                {
+                  inbound = [
+                    "inbound:tun"
+                  ];
+                  outbound = "outbound:wireguard";
+                }
+              ];
             };
           };
         };
@@ -361,7 +392,7 @@ in
           (builtins.readFile ./common/acme/server/ca.cert.pem)
         ];
 
-        environment.systemPackages = [ pkgs.curlHTTP3 ];
+        environment.systemPackages = [ pkgs.curl ];
 
         systemd.services.sing-box.serviceConfig.ExecStartPost = [
           "+${tproxyPost}/bin/exe"
@@ -370,6 +401,10 @@ in
         services.sing-box = {
           enable = true;
           settings = {
+            dns = {
+              final = hostsDns.tag;
+              servers = [ hostsDns ];
+            };
             inbounds = [
               {
                 tag = "inbound:tproxy";
@@ -377,8 +412,6 @@ in
                 listen = "0.0.0.0";
                 listen_port = tproxyPort;
                 udp_fragment = true;
-                sniff = true;
-                sniff_override_destination = false;
               }
             ];
             outbounds = [
@@ -393,6 +426,8 @@ in
               vmessOutbound
             ];
             route = {
+              default_domain_resolver = hostsDns.tag;
+              default_interface = "eth1";
               final = "outbound:block";
               rules = [
                 {
@@ -432,33 +467,31 @@ in
             dns = {
               final = "dns:default";
               independent_cache = true;
-              fakeip = {
-                enabled = true;
-                "inet4_range" = "198.18.0.0/16";
-              };
               servers = [
                 {
-                  detour = "outbound:direct";
+                  type = "udp";
                   tag = "dns:default";
-                  address = hosts."${target_host}";
+                  server = hosts."${target_host}";
                 }
                 {
+                  type = "fakeip";
                   tag = "dns:fakeip";
-                  address = "fakeip";
+                  inet4_range = "198.18.0.0/16";
+                }
+                {
+                  type = "resolved";
+                  tag = "dns:resolved";
+                  service = "service:resolved";
+                  accept_default_resolvers = true;
                 }
               ];
               rules = [
-                {
-                  outbound = [ "any" ];
-                  server = "dns:default";
-                }
                 {
                   query_type = [
                     "A"
                     "AAAA"
                   ];
                   server = "dns:fakeip";
-
                 }
               ];
             };
@@ -474,21 +507,53 @@ in
                 type = "direct";
                 tag = "outbound:direct";
               }
-              {
-                type = "dns";
-                tag = "outbound:dns";
-              }
             ];
             route = {
+              default_domain_resolver = "dns:default";
+              default_interface = "eth1";
               final = "outbound:direct";
               rules = [
                 {
+                  action = "sniff";
+                }
+                {
                   protocol = "dns";
-                  outbound = "outbound:dns";
+                  action = "hijack-dns";
                 }
               ];
             };
+            services = [
+              {
+                type = "resolved";
+                tag = "service:resolved";
+              }
+            ];
           };
+        };
+      };
+
+    empty_settings =
+      { ... }:
+      {
+        environment.etc."sing-box/config.json".text = builtins.toJSON {
+          inbounds = [
+            {
+              type = "mixed";
+              listen = "127.0.0.1";
+              listen_port = 1088;
+            }
+          ];
+          outbounds = [
+            {
+              type = "direct";
+              tag = "outbound:direct";
+            }
+          ];
+        };
+
+        services.sing-box = {
+          enable = true;
+          settings = { };
         };
       };
   };
@@ -516,7 +581,6 @@ in
 
     with subtest("tun"):
       tun.wait_for_unit("sing-box.service")
-      tun.wait_for_unit("sys-devices-virtual-net-${tunInbound.interface_name}.device")
       tun.wait_until_succeeds("ip route get ${hosts."${target_host}"} | grep 'dev ${tunInbound.interface_name}'")
       tun.succeed("ip addr show ${tunInbound.interface_name}")
       tun.succeed("ip route show table ${toString tunInbound.iproute2_table_index} | grep ${tunInbound.interface_name}")
@@ -528,9 +592,8 @@ in
 
     with subtest("wireguard"):
       wireguard.wait_for_unit("sing-box.service")
-      wireguard.wait_for_unit("sys-devices-virtual-net-wg0.device")
-      wireguard.succeed("ip addr show wg0")
-      test_curl(wireguard, "--interface wg0")
+      fakeip.wait_until_succeeds("ip route get ${hosts."${target_host}"} | grep 'dev ${tunInbound.interface_name}'")
+      test_curl(wireguard)
 
     with subtest("tproxy"):
       tproxy.wait_for_unit("sing-box.service")
@@ -538,9 +601,11 @@ in
 
     with subtest("fakeip"):
       fakeip.wait_for_unit("sing-box.service")
-      fakeip.wait_for_unit("sys-devices-virtual-net-${tunInbound.interface_name}.device")
       fakeip.wait_until_succeeds("ip route get ${hosts."${target_host}"} | grep 'dev ${tunInbound.interface_name}'")
       fakeip.succeed("dig +short A ${target_host} @${target_host} | grep '^198.18.'")
+
+    with subtest("empty settings"):
+      empty_settings.wait_for_unit("sing-box.service")
   '';
 
 }

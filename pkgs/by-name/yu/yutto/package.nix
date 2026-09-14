@@ -2,13 +2,13 @@
   lib,
   python3Packages,
   fetchFromGitHub,
+  rustPlatform,
   ffmpeg,
-  nix-update-script,
 }:
 
-python3Packages.buildPythonApplication rec {
+python3Packages.buildPythonApplication (finalAttrs: {
   pname = "yutto";
-  version = "2.0.3";
+  version = "2.3.1";
   pyproject = true;
 
   pythonRelaxDeps = true;
@@ -16,22 +16,39 @@ python3Packages.buildPythonApplication rec {
   src = fetchFromGitHub {
     owner = "yutto-dev";
     repo = "yutto";
-    tag = "v${version}";
-    hash = "sha256-giwCLA9M1XR0neLJVfO017Q1wK34yVQpOxUzgShDJL0=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-TofIXOqeUbIL8iW3SnEspQlSsr21YbDl/dFPzgPFmKo=";
   };
 
-  build-system = with python3Packages; [ hatchling ];
+  cargoRoot = "rust";
+
+  cargoDeps = rustPlatform.fetchCargoVendor {
+    inherit (finalAttrs)
+      pname
+      version
+      src
+      cargoRoot
+      ;
+    hash = "sha256-qiLjCAUrRe8vm0uZuToA1AbfJjF/Yhs1V+lUC6hLNCM=";
+  };
+
+  build-system = with rustPlatform; [
+    cargoSetupHook
+    maturinBuildHook
+  ];
 
   dependencies =
     with python3Packages;
     [
-      httpx
       aiofiles
       biliass
       dict2xml
-      colorama
+      httpx
       typing-extensions
       pydantic
+      returns
+      segno
+      websockets
     ]
     ++ (with httpx.optional-dependencies; http2 ++ socks);
 
@@ -39,15 +56,17 @@ python3Packages.buildPythonApplication rec {
     makeWrapperArgs+=(--prefix PATH : ${lib.makeBinPath [ ffmpeg ]})
   '';
 
+  postPatch = ''
+    sed -ie 's/requires = \["uv_build[^"]*"]/requires = ["uv_build"]/' pyproject.toml
+  '';
+
   pythonImportsCheck = [ "yutto" ];
 
-  passthru.updateScript = nix-update-script { };
-
-  meta = with lib; {
+  meta = {
     description = "Bilibili downloader";
     homepage = "https://github.com/yutto-dev/yutto";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ linsui ];
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ linsui ];
     mainProgram = "yutto";
   };
-}
+})

@@ -7,20 +7,20 @@
   curl,
   libunistring,
   openssl,
-  pcre,
+  pcre2,
   zlib,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "the-foundation";
-  version = "1.9.1";
+  version = "1.13.1";
 
   src = fetchFromGitea {
-    domain = "git.skyjake.fi";
+    domain = "codeberg.org";
     owner = "skyjake";
     repo = "the_Foundation";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-M3nG/926bz9US4R9cTyBw2n6oNy7VriGGzuHgRWX4eg=";
+    hash = "sha256-j8AeJdCjGxjsy6R+MFuWqXfYEFISfQqg2SlqiRx6G/k=";
   };
 
   nativeBuildInputs = [
@@ -32,7 +32,7 @@ stdenv.mkDerivation (finalAttrs: {
     curl
     libunistring
     openssl
-    pcre
+    pcre2
     zlib
   ];
 
@@ -42,7 +42,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   postFixup = ''
     substituteInPlace "$out"/lib/pkgconfig/the_Foundation.pc \
-      --replace '="''${prefix}//' '="/'
+      --replace-fail '="''${prefix}//' '="/'
   '';
 
   meta = {

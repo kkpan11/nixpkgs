@@ -5,17 +5,17 @@
 }:
 mkYaziPlugin {
   pname = "toggle-pane.yazi";
-  version = "25.5.28-unstable-2025-05-28";
+  version = "0-unstable-2026-09-01";
 
   src = fetchFromGitHub {
     owner = "yazi-rs";
     repo = "plugins";
-    rev = "a54b96a3f21495ab3659e45d5354bcc8413be15c";
-    hash = "sha256-TtVaWazkk2xnomhJFinElbUsXUKAbDDhLEVq5Ah3nAk=";
+    rev = "4dc7f1b6458c2578f4494f10d468c68c1082214f";
+    hash = "sha256-BSAOkL4H4LVMbTRFv4kzGGRpLgtKkfNTEsDH2EQ219Q=";
   };
 
   meta = {
-    description = "Previewing archive contents with toggle-pane";
+    description = "Toggle the show, hide, and maximize states for different panes";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ khaneliman ];
   };

@@ -6,21 +6,21 @@
   scikit-learn,
   pandas,
   pytestCheckHook,
-  pytest-cov,
+  pytest-cov-stub,
   pytest-xdist,
   pytz,
 }:
 
 buildPythonPackage rec {
   pname = "sklearn-compat";
-  version = "0.1.3";
+  version = "0.1.6";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "sklearn-compat";
     repo = "sklearn-compat";
     tag = version;
-    hash = "sha256-9Py5VKDej7xDMdWVujkS/ooxOkEcjPJNlBHkbe/rycE=";
+    hash = "sha256-bziweext3Mqq0Wa9KlX1gp5NpVYX8IpcvS1gTjxQa70=";
   };
 
   build-system = [
@@ -34,7 +34,7 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     pandas
     pytestCheckHook
-    pytest-cov
+    pytest-cov-stub
     pytest-xdist
     pytz
   ];
@@ -47,6 +47,6 @@ buildPythonPackage rec {
     description = "Ease multi-version support for scikit-learn compatible library";
     homepage = "https://github.com/sklearn-compat/sklearn-compat";
     license = lib.licenses.bsd3;
-    maintainers = with lib.maintainers; [ philipwilk ];
+    maintainers = with lib.maintainers; [ jadewilk ];
   };
 }

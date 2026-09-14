@@ -1,23 +1,25 @@
 {
   lib,
   fetchzip,
-  buildGo124Module,
+  buildGo126Module,
   nixosTests,
   nix-update-script,
 }:
 
-buildGo124Module (finalAttrs: {
+buildGo126Module (finalAttrs: {
   pname = "traefik";
-  version = "3.4.0";
+  version = "3.7.13";
 
   # Archive with static assets for webui
   src = fetchzip {
     url = "https://github.com/traefik/traefik/releases/download/v${finalAttrs.version}/traefik-v${finalAttrs.version}.src.tar.gz";
-    hash = "sha256-9OCrIkeiqX8Kc21wWDy6cuSOw7l27YzgD/u8IiPc70w=";
+    hash = "sha256-xwq4iqD0UM9xClVN4OkntEio1jGXU0JTFkXj+kpFkwE=";
     stripRoot = false;
   };
 
-  vendorHash = "sha256-KtLWecErTstGpzByzDRvHXdq9qi9L4Q1iIfy0Lx7EOE=";
+  vendorHash = "sha256-jlrZ78urMkNoBtV1VcfAA++1H+XuUaUxMA8ZX4w1lhg=";
+
+  proxyVendor = true;
 
   subPackages = [ "cmd/traefik" ];
 
@@ -33,8 +35,6 @@ buildGo124Module (finalAttrs: {
     ldflags+=" -X github.com/traefik/traefik/v${lib.versions.major finalAttrs.version}/pkg/version.Version=${finalAttrs.version}"
     ldflags+=" -X github.com/traefik/traefik/v${lib.versions.major finalAttrs.version}/pkg/version.Codename=$CODENAME"
   '';
-
-  doCheck = false;
 
   passthru.tests = {
     inherit (nixosTests) traefik;

@@ -17,16 +17,17 @@
   pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mizani";
-  version = "0.13.5";
+  version = "0.14.6";
   pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "has2k1";
     repo = "mizani";
-    tag = "v${version}";
-    hash = "sha256-W88B8WCwIqjMhjoDJaksHBhvg/Sr0RRDwo9stniyzkM=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-YbBHgfcyyK5hCjeILgvl03+uWsOJwLF55UKecd8g4Y0=";
   };
 
   build-system = [ setuptools-scm ];
@@ -48,8 +49,8 @@ buildPythonPackage rec {
   meta = {
     description = "Scales for Python";
     homepage = "https://github.com/has2k1/mizani";
-    changelog = "https://github.com/has2k1/mizani/releases/tag/v${version}";
+    changelog = "https://github.com/has2k1/mizani/releases/tag/${finalAttrs.src.tag}";
     license = lib.licenses.bsd3;
     maintainers = with lib.maintainers; [ samuela ];
   };
-}
+})

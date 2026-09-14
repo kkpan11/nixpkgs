@@ -5,22 +5,19 @@
   cryptography,
   fetchFromGitHub,
   protobuf,
-  pythonOlder,
   setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "androidtvremote2";
-  version = "0.2.2";
+  version = "0.3.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.10";
 
   src = fetchFromGitHub {
     owner = "tronikos";
     repo = "androidtvremote2";
-    tag = "v${version}";
-    hash = "sha256-KlOvtJ7TyX+SUuO5TF/2gkHh059dMKmPOzc6H+MDfbg=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-zyM9s8gtL0lBGd2hkANZRNsG7BEZv+c7Agexpk80OT0=";
   };
 
   build-system = [ setuptools ];
@@ -36,11 +33,11 @@ buildPythonPackage rec {
   # Module only has a dummy test
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Library to interact with the Android TV Remote protocol v2";
     homepage = "https://github.com/tronikos/androidtvremote2";
-    changelog = "https://github.com/tronikos/androidtvremote2/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/tronikos/androidtvremote2/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

@@ -18,7 +18,7 @@ let
     .${system};
 
   # Get hash in sri format
-  # nix-prefetch-url <url> | xargs nix hash convert --hash-algo sha256
+  # nix-prefetch-url <url> | xargs nix --extra-experimental-features nix-command hash convert --hash-algo sha256
   hash =
     {
       x86_64-linux = "sha256-DK5+VT4+OCcJ4Bbv6GGs6R332GMsD1gNEmcz0iaJb1c=";
@@ -32,7 +32,7 @@ let
     url = "https://github.com/buckets/application/releases/download/v${version}/Buckets-linux-latest-${platform}-${version}.AppImage";
     inherit hash;
   };
-  appimageContents = appimageTools.extractType2 { inherit pname version src; };
+  appimageContents = appimageTools.extract { inherit pname version src; };
 in
 appimageTools.wrapType2 {
   inherit pname version src;

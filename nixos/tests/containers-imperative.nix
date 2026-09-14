@@ -3,9 +3,7 @@
   name = "containers-imperative";
   meta = {
     maintainers = with lib.maintainers; [
-      aristid
       aszlig
-      kampfschlaefer
     ];
   };
 
@@ -19,6 +17,9 @@
     {
       imports = [ ../modules/installer/cd-dvd/channel.nix ];
 
+      boot.enableContainers = true;
+
+      nix.enable = true; # disabled by default. See all-tests.nix / tag(no-nix-by-default)
       # XXX: Sandbox setup fails while trying to hardlink files from the host's
       #      store file system into the prepared chroot directory.
       nix.settings.sandbox = false;
@@ -47,13 +48,14 @@
           stdenv
           stdenvNoCC
           emptyContainer.config.containers.foo.path
+          libcap-text-verifier
           libxslt
           desktop-file-utils
           texinfo
           docbook5
           libxml2
           docbook_xsl_ns
-          xorg.lndir
+          lndir
           documentation-highlighter
           perlPackages.ConfigIniFiles
         ];

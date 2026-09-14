@@ -1,5 +1,6 @@
 {
   lib,
+  arrow,
   buildPythonPackage,
   cryptography,
   defusedxml,
@@ -9,13 +10,13 @@
   marshmallow,
   pydantic-extra-types,
   pydantic,
+  pyprojectVersionPatchHook,
   pytest-cov-stub,
   pytest-datafiles,
   pytest-vcr,
   pytestCheckHook,
   python-box,
   python-dateutil,
-  pythonOlder,
   requests-pkcs12,
   requests-toolbelt,
   requests,
@@ -26,28 +27,30 @@
   typing-extensions,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pytenable";
-  version = "1.7.5";
+  version = "26.8.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.10";
 
   src = fetchFromGitHub {
     owner = "tenable";
     repo = "pyTenable";
-    tag = version;
-    hash = "sha256-oTFlIDlntbB2YwE1zuU9DjouPncgIMKU+lDf5bcPKiQ=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-KRZbrJgIxdNAnlmP7Ww/JasoDJqJZkBkd0qXm9gfXp4=";
   };
 
-  pythonRelaxDeps = [
-    "cryptography"
-    "defusedxml"
-  ];
+  postPatch = ''
+    # pytest 9 rejects marks on fixtures, where they never had any effect
+    substituteInPlace tests/sc/conftest.py \
+      --replace-fail "@pytest.mark.filterwarnings('ignore::DeprecationWarning')" ""
+  '';
 
   build-system = [ setuptools ];
 
+  nativeBuildInputs = [ pyprojectVersionPatchHook ];
+
   dependencies = [
+    arrow
     cryptography
     defusedxml
     gql
@@ -79,23 +82,19 @@ buildPythonPackage rec {
   ];
 
   disabledTests = [
-    # Disable tests that requires a Docker container
-    "test_uploads_docker_push_name_typeerror"
-    "test_uploads_docker_push_tag_typeerror"
-    "test_uploads_docker_push_cs_name_typeerror"
-    "test_uploads_docker_push_cs_tag_typeerror"
     # Test requires network access
     "test_assets_list_vcr"
     "test_events_list_vcr"
+    "test_session_ssl_error"
   ];
 
   pythonImportsCheck = [ "tenable" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for the Tenable.io and TenableSC API";
     homepage = "https://github.com/tenable/pyTenable";
-    changelog = "https://github.com/tenable/pyTenable/releases/tag/${src.tag}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/tenable/pyTenable/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

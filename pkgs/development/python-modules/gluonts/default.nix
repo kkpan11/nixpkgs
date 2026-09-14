@@ -1,9 +1,11 @@
 {
-  stdenv,
   lib,
+  stdenv,
   buildPythonPackage,
   fetchFromGitHub,
-  setuptools,
+
+  # build-system
+  hatchling,
 
   # dependencies
   numpy,
@@ -11,43 +13,56 @@
   pydantic,
   tqdm,
   toolz,
+  typing-extensions,
 
   # optional dependencies (torch)
   torch,
   lightning,
   scipy,
 
-  # test
+  # tests
   pytestCheckHook,
   distutils,
   matplotlib,
   pyarrow,
   statsmodels,
+  writableTmpDirAsHomeHook,
   which,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "gluonts";
-  version = "0.16.1";
+  version = "0.17.0";
   pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "awslabs";
     repo = "gluonts";
-    tag = "v${version}";
-    hash = "sha256-i4yCNe8C9BZw6AZUDOZC1E9PQOOOoUovSZnOF1yzycM=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-9X+cTwaoCsAgrjaZtWjDYDjYZO6MNPuBt0oGQUH8/nc=";
   };
 
   build-system = [
-    setuptools
+    hatchling
   ];
 
+  patches = [
+    # Fix pandas>=3 compatibility
+    ./pandas3-compat.patch
+  ];
+
+  pythonRelaxDeps = [
+    "pandas"
+    "toolz"
+  ];
   dependencies = [
     numpy
     pandas
     pydantic
     tqdm
     toolz
+    typing-extensions
   ];
 
   optional-dependencies = {
@@ -57,11 +72,6 @@ buildPythonPackage rec {
       scipy
     ];
   };
-
-  pythonRelaxDeps = [
-    "numpy"
-    "toolz"
-  ];
 
   pythonImportsCheck = [
     "gluonts"
@@ -83,31 +93,34 @@ buildPythonPackage rec {
     matplotlib
     pyarrow
     statsmodels
+    writableTmpDirAsHomeHook
     which
-  ] ++ optional-dependencies.torch;
-
-  preCheck = ''export HOME=$(mktemp -d)'';
+  ]
+  ++ finalAttrs.passthru.optional-dependencies.torch;
 
   disabledTestPaths = [
     # requires `cpflows`, not in Nixpkgs
     "test/torch/model"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    # Trace/BPT trap: 5
+    "test/torch/test_torch_item_id_info.py"
   ];
 
-  disabledTests =
-    [
-      # tries to access network
-      "test_against_former_evaluator"
-    ]
-    ++ lib.optionals stdenv.hostPlatform.isDarwin [
-      # RuntimeError: *** -[__NSPlaceholderArray initWithObjects:count:]: attempt to insert nil object from objects[1]
-      "test_forecast"
-    ];
+  disabledTests = [
+    # tries to access network
+    "test_against_former_evaluator"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    # RuntimeError: *** -[__NSPlaceholderArray initWithObjects:count:]: attempt to insert nil object from objects[1]
+    "test_forecast"
+  ];
 
   meta = {
     description = "Probabilistic time series modeling in Python";
     homepage = "https://ts.gluon.ai";
-    changelog = "https://github.com/awslabs/gluonts/releases/tag/${src.tag}";
+    changelog = "https://github.com/awslabs/gluonts/releases/tag/${finalAttrs.src.tag}";
     license = lib.licenses.asl20;
     maintainers = with lib.maintainers; [ bcdarwin ];
   };
-}
+})

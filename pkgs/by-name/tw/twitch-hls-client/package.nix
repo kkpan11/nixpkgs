@@ -4,27 +4,26 @@
   fetchFromGitHub,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "twitch-hls-client";
-  version = "1.4.1";
+  version = "1.8.0";
 
   src = fetchFromGitHub {
     owner = "2bc4";
     repo = "twitch-hls-client";
-    rev = version;
-    hash = "sha256-m6ci7jKmWGsvJZt9CxfU0OCk5GA7I87c5HHdPP+4O94=";
+    rev = finalAttrs.version;
+    hash = "sha256-6b0EX7ykeYSUvfT03Ot6JiFk7EETF5b69FhnGZb6prI=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-4/a94VFlOvw3TR+LYkq3qghhUudt0S9HF85fy4mYbQM=";
+  cargoHash = "sha256-YBgQEkNglhrmrELpd88LYZaExheHHU32a+CUsBgxfoY=";
 
-  meta = with lib; {
+  meta = {
     description = "Minimal CLI client for watching/recording Twitch streams";
     homepage = "https://github.com/2bc4/twitch-hls-client.git";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ lenivaya ];
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ lenivaya ];
     mainProgram = "twitch-hls-client";
     sourceProvenance = with lib.sourceTypes; [ fromSource ];
-    platforms = platforms.all;
+    platforms = lib.platforms.all;
   };
-}
+})

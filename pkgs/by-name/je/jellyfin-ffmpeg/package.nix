@@ -1,28 +1,37 @@
 {
-  ffmpeg_7-full,
+  ffmpeg_8-full,
   fetchFromGitHub,
   lib,
 }:
 
 let
-  version = "7.1.1-3";
+  version = "8.1.2-4";
 in
 
-(ffmpeg_7-full.override {
+(ffmpeg_8-full.override {
   inherit version; # Important! This sets the ABI.
   source = fetchFromGitHub {
     owner = "jellyfin";
     repo = "jellyfin-ffmpeg";
-    rev = "v${version}";
-    hash = "sha256-pJLIhXDPDRhEqzmc1bXViSTSnRifFhMlixkEbGA0GRE=";
+    tag = "v${version}";
+    hash = "sha256-+xUjwhVX/HyS/+Gmv8iQfUwHax7xjX3SSOjs34IDHHs=";
   };
+  buildFfplay = false; # requires SDL2 which gets disabled
+  buildFfprobe = true; # required by various programs like Immich
+
+  # dependencies with big closure sizes that are not enabled by upstream in
+  # https://github.com/jellyfin/jellyfin-ffmpeg/tree/jellyfin/builder/scripts.d
+  withFrei0r = false;
+  withRav1e = false;
+  withSamba = false;
+  withSdl2 = false;
+  withWhisper = false;
 }).overrideAttrs
   (old: {
     pname = "jellyfin-ffmpeg";
 
     configureFlags = old.configureFlags ++ [
       "--extra-version=Jellyfin"
-      "--disable-ptx-compression" # https://github.com/jellyfin/jellyfin/issues/7944#issuecomment-1156880067
     ];
 
     postPatch = ''
@@ -38,7 +47,10 @@ in
       changelog = "https://github.com/jellyfin/jellyfin-ffmpeg/releases/tag/v${version}";
       description = "${old.meta.description} (Jellyfin fork)";
       homepage = "https://github.com/jellyfin/jellyfin-ffmpeg";
-      maintainers = with lib.maintainers; [ justinas ];
+      maintainers = with lib.maintainers; [
+        dotlambda
+        justinas
+      ];
       pkgConfigModules = [ "libavutil" ];
     };
   })

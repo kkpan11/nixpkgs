@@ -12,15 +12,15 @@
   buildPackages,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "libmtp";
-  version = "1.1.22";
+  version = "1.1.23";
 
   src = fetchFromGitHub {
     owner = "libmtp";
     repo = "libmtp";
-    rev = "libmtp-${builtins.replaceStrings [ "." ] [ "-" ] version}";
-    sha256 = "sha256-hIH6W8qQ6DB4ST7SlFz6CCnLsEGOWgmUb9HoHMNA3wY=";
+    rev = "libmtp-${builtins.replaceStrings [ "." ] [ "-" ] finalAttrs.version}";
+    sha256 = "sha256-FlPj9PEeOAWabU11dFTzDgY9TBbgmJclbeL0iULYw6A=";
   };
 
   outputs = [
@@ -41,7 +41,10 @@ stdenv.mkDerivation rec {
 
   propagatedBuildInputs = [ libusb1 ];
 
-  preConfigure = "NOCONFIGURE=1 ./autogen.sh";
+  preConfigure = ''
+    autopoint -f
+    NOCONFIGURE=1 ./autogen.sh
+  '';
 
   configureFlags = [ "--with-udev=${placeholder "out"}/lib/udev" ];
 
@@ -58,7 +61,9 @@ stdenv.mkDerivation rec {
 
   enableParallelBuilding = true;
 
-  meta = with lib; {
+  doInstallCheck = true;
+
+  meta = {
     homepage = "https://github.com/libmtp/libmtp";
     description = "Implementation of Microsoft's Media Transfer Protocol";
     longDescription = ''
@@ -66,8 +71,8 @@ stdenv.mkDerivation rec {
       in the form of a library suitable primarily for POSIX compliant operating
       systems. We implement MTP Basic, the stuff proposed for standardization.
     '';
-    platforms = platforms.unix;
-    license = licenses.lgpl21;
-    maintainers = with maintainers; [ lovesegfault ];
+    platforms = lib.platforms.unix;
+    license = lib.licenses.lgpl21;
+    maintainers = with lib.maintainers; [ lovesegfault ];
   };
-}
+})

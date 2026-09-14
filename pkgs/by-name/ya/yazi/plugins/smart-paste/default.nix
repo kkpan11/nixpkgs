@@ -5,17 +5,17 @@
 }:
 mkYaziPlugin {
   pname = "smart-paste.yazi";
-  version = "25.5.28-unstable-2025-05-28";
+  version = "0-unstable-2026-09-01";
 
   src = fetchFromGitHub {
     owner = "yazi-rs";
     repo = "plugins";
-    rev = "d642bfb0822eb0c3c5c891ab0f4b6f897a2083cb";
-    hash = "sha256-WF2b9t0VPGNP3QXgr/GMDFcSh5bsXC7KKd2ICL4WDHo=";
+    rev = "4dc7f1b6458c2578f4494f10d468c68c1082214f";
+    hash = "sha256-BSAOkL4H4LVMbTRFv4kzGGRpLgtKkfNTEsDH2EQ219Q=";
   };
 
   meta = {
-    description = "Previewing archive contents with smart-filter";
+    description = "Paste files into the hovered directory or to the CWD if hovering over a file";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ khaneliman ];
   };

@@ -1,4 +1,5 @@
 {
+  lib,
   replaceVarsWith,
   perl,
   shadow,
@@ -7,6 +8,7 @@
   configurationDirectory ? "/etc/nixos-containers",
   stateDirectory ? "/var/lib/nixos-containers",
   nixosTests,
+  path,
 }:
 replaceVarsWith {
   name = "nixos-container";
@@ -15,8 +17,12 @@ replaceVarsWith {
   src = ./nixos-container.pl;
 
   replacements = {
-    perl = perl.withPackages (p: [ p.FileSlurp ]);
+    perl = perl.withPackages (p: [
+      p.FileSlurp
+      p.IPCRun
+    ]);
     su = "${shadow.su}/bin/su";
+    lib = "${path + "/lib"}";
 
     inherit configurationDirectory stateDirectory util-linux;
   };
@@ -41,5 +47,8 @@ replaceVarsWith {
       --fish ${./nixos-container-completion.fish}
   '';
 
-  meta.mainProgram = "nixos-container";
+  meta = {
+    mainProgram = "nixos-container";
+    license = lib.licenses.mit;
+  };
 }

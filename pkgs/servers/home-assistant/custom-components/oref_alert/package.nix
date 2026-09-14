@@ -4,32 +4,52 @@
   fetchFromGitHub,
   aiofiles,
   shapely,
+  paho-mqtt,
   pytestCheckHook,
   pytest-homeassistant-custom-component,
   pytest-freezer,
+  pytest-cov-stub,
+  home-assistant-frontend,
 }:
 
 buildHomeAssistantComponent rec {
   owner = "amitfin";
   domain = "oref_alert";
-  version = "2.21.1";
+  version = "7.0.1";
 
   src = fetchFromGitHub {
     owner = "amitfin";
     repo = "oref_alert";
     tag = "v${version}";
-    hash = "sha256-ov/smP7rflRfQMqYduTxDAYj5xQkpZJSzIQZrP0YADQ=";
+    hash = "sha256-ZYV/pylzjzjDAR9v9CaCMUCS+ttCf5t3yii06tmjLm0=";
   };
+
+  # Do not publish cards, currently broken, attempting to write to nix store.
+  postPatch = ''
+    substituteInPlace custom_components/oref_alert/__init__.py \
+      --replace-fail 'version = await publish_cards(hass)' 'version = "1.0.0"'
+  '';
 
   dependencies = [
     aiofiles
     shapely
+    paho-mqtt
+  ];
+
+  ignoreVersionRequirement = [ "shapely" ];
+
+  # These tests are broken with cards removed.
+  disabledTestPaths = [
+    "tests/test_custom_cards.py"
+    "tests/test_init.py"
   ];
 
   nativeCheckInputs = [
     pytestCheckHook
     pytest-homeassistant-custom-component
     pytest-freezer
+    pytest-cov-stub
+    home-assistant-frontend
   ];
 
   meta = {

@@ -10,29 +10,30 @@
   replaceVars,
   yarn,
   testers,
-  typescript,
+  typescript_5,
+  nix-update-script,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "typescript-language-server";
-  version = "4.3.3";
+  version = "5.3.0";
 
   src = fetchFromGitHub {
     owner = "typescript-language-server";
     repo = "typescript-language-server";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-FCv0+tA7AuCdGeG6FEiMyRAHcl0WbezhNYLL7xp5FWU=";
+    hash = "sha256-9xK1maMfWowWlzAtmwoR3CVqQCkUf6i9uBWVsobBQPA=";
   };
 
   patches = [
     (replaceVars ./default-fallbackTsserverPath.diff {
-      typescript = "${typescript}/lib/node_modules/typescript/lib/tsserver.js";
+      typescript = "${typescript_5}/lib/node_modules/typescript/lib/tsserver.js";
     })
   ];
 
   offlineCache = fetchYarnDeps {
     yarnLock = "${finalAttrs.src}/yarn.lock";
-    hash = "sha256-nSMhPfbWD93sGIKehBBE/bh4RzHXFtGAjeyG20m/LWQ=";
+    hash = "sha256-68aXoafE/wc1iS7HHwF7g/i8ZREoTj4bV/RL3XYc0Rs=";
   };
 
   nativeBuildInputs = [
@@ -77,10 +78,11 @@ stdenv.mkDerivation (finalAttrs: {
     runHook postInstall
   '';
 
-  passthru.tests = {
-    version = testers.testVersion {
+  passthru = {
+    tests.version = testers.testVersion {
       package = finalAttrs.finalPackage;
     };
+    updateScript = nix-update-script { };
   };
 
   meta = {

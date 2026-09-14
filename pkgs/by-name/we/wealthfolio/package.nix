@@ -9,36 +9,43 @@
   nodejs,
   openssl,
   pkg-config,
-  pnpm_9,
+  pnpm_10,
+  fetchPnpmDeps,
+  pnpmConfigHook,
   rustPlatform,
   webkitgtk_4_1,
   wrapGAppsHook3,
   nix-update-script,
 }:
-
 stdenv.mkDerivation (finalAttrs: {
   pname = "wealthfolio";
-  version = "1.1.2";
+  version = "3.8.0";
 
   src = fetchFromGitHub {
-    owner = "afadil";
+    owner = "wealthfolio";
     repo = "wealthfolio";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-lN7P8FPcMU9COTyKs1hswvmHIKFqrL3Svp77q4pI6+I=";
+    hash = "sha256-5CqLHnwBzqA+yf/sQM2ie3xuO+5aM5EDA0bhZ6r1VIM=";
   };
 
-  pnpmDeps = pnpm_9.fetchDeps {
+  pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs) src pname version;
-    hash = "sha256-wKj1jy/TDi8Cckx9et2XzX3yPnmfXMDrqv9c4+Yyhu4=";
+    pnpm = pnpm_10;
+    fetcherVersion = 4;
+    hash = "sha256-I9s1hFNb7oHYH5OhKmtMbMsmQZXE6ovpupusN6M1YKc=";
   };
 
-  cargoRoot = "src-tauri";
+  cargoRoot = ".";
   buildAndTestSubdir = finalAttrs.cargoRoot;
 
   cargoDeps = rustPlatform.fetchCargoVendor {
-    inherit (finalAttrs) pname version src;
-    sourceRoot = "${finalAttrs.src.name}/${finalAttrs.cargoRoot}";
-    hash = "sha256-MmdvEutdkX98DgX1aVuxs4gabuMX5aM8yC4eqgvd8Q4=";
+    inherit (finalAttrs)
+      pname
+      version
+      src
+      cargoRoot
+      ;
+    hash = "sha256-PFMmpQhQubMzomvLWMJZrriH9emwEzO/rTFCovzFt6w=";
   };
 
   nativeBuildInputs = [
@@ -47,7 +54,8 @@ stdenv.mkDerivation (finalAttrs: {
     moreutils
     nodejs
     pkg-config
-    pnpm_9.configHook
+    pnpmConfigHook
+    pnpm_10
     rustPlatform.cargoSetupHook
     wrapGAppsHook3
   ];
@@ -62,17 +70,17 @@ stdenv.mkDerivation (finalAttrs: {
     jq \
       '.plugins.updater.endpoints = [ ]
       | .bundle.createUpdaterArtifacts = false' \
-      src-tauri/tauri.conf.json \
-      | sponge src-tauri/tauri.conf.json
+      apps/tauri/tauri.conf.json \
+      | sponge apps/tauri/tauri.conf.json
   '';
 
   passthru.updateScript = nix-update-script { };
 
   meta = {
-    description = "A Beautiful Private and Secure Desktop Investment Tracking Application";
+    description = "Beautiful Private and Secure Desktop Investment Tracking Application";
     homepage = "https://wealthfolio.app/";
     license = lib.licenses.agpl3Only;
-    mainProgram = "wealthfolio";
+    mainProgram = "Wealthfolio";
     maintainers = with lib.maintainers; [ kilianar ];
     platforms = lib.platforms.linux;
   };

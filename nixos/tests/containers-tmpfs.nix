@@ -23,7 +23,9 @@
           # Add a tmpfs on a path that does not exist
           "/some/random/path"
         ];
-        config = { };
+        config = {
+          nix.enable = false; # disabled by default on the test's host. See all-tests.nix / tag(no-nix-by-default)
+        };
       };
 
       virtualisation.additionalPaths = [ pkgs.stdenv ];
@@ -79,7 +81,7 @@
     with subtest(
         "files created in the hosts container dir in a path where a tmpfs "
         + "file system has been mounted are not visible to the container as "
-        + "the do not exist in the tmpfs"
+        + "they do not exist in the tmpfs"
     ):
         machine.succeed(
             "touch /var/lib/nixos-containers/tmpfs/var/test.file",

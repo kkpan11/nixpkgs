@@ -1,5 +1,6 @@
 {
   lib,
+  stdenv,
   buildGoModule,
   fetchFromGitHub,
   installShellFiles,
@@ -7,16 +8,16 @@
 
 buildGoModule rec {
   pname = "omnictl";
-  version = "0.50.0";
+  version = "1.10.6";
 
   src = fetchFromGitHub {
     owner = "siderolabs";
     repo = "omni";
     rev = "v${version}";
-    hash = "sha256-zxtBAFfZrXbUL1V2AN8Cblm6M7HhogoncOzGyjOUcK4=";
+    hash = "sha256-3Fm7WM8ge7rz9h/UlvULrG8yzol8e/i+3FSvRBf/g+k=";
   };
 
-  vendorHash = "sha256-ewJTnoJpnz/237j/mpYpi8Otwu3ge9QN8cNrAfCHvUM=";
+  vendorHash = "sha256-JZmRdWwZ2s5Ot+GopWg1jgCKruE+z6rltGch/DApuoI=";
 
   ldflags = [
     "-s"
@@ -29,7 +30,7 @@ buildGoModule rec {
 
   nativeBuildInputs = [ installShellFiles ];
 
-  postInstall = ''
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     installShellCompletion --cmd omnictl \
       --bash <($out/bin/omnictl completion bash) \
       --fish <($out/bin/omnictl completion fish) \
@@ -38,11 +39,11 @@ buildGoModule rec {
 
   doCheck = false; # no tests
 
-  meta = with lib; {
+  meta = {
     description = "CLI for the Sidero Omni Kubernetes management platform";
     mainProgram = "omnictl";
     homepage = "https://omni.siderolabs.com/";
-    license = licenses.bsl11;
-    maintainers = with maintainers; [ raylas ];
+    license = lib.licenses.bsl11;
+    maintainers = with lib.maintainers; [ raylas ];
   };
 }

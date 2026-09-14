@@ -1,40 +1,54 @@
 {
   blackmagic,
   lib,
-  fetchFromGitHub,
+  stdenv,
+  fetchFromCodeberg,
   rustPlatform,
   versionCheckHook,
+  udevCheckHook,
+  pkg-config,
+  udev,
 }:
 rustPlatform.buildRustPackage rec {
   pname = "bmputil";
-  version = "0.1.3";
+  version = "1.2.0";
 
-  src = fetchFromGitHub {
+  src = fetchFromCodeberg {
     owner = "blackmagic-debug";
     repo = "bmputil";
     tag = "v${version}";
-    hash = "sha256-LKtdwQbsPNEu3EDTowOXeFmi5OHOU3kq5f5xxevBjtM=";
+    hash = "sha256-WX26rDFLWtEG/BvVwPjsY3X1ebvNseEpdgJRGMynyBo=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-32dTB5gOMgy6Fn62p68tAZB8AYwh1BAW+kwwuZPGJyM=";
+  cargoHash = "sha256-Uj+TLD1SGx5lFFhSDKRr6iMg4QnjgE1+1KbXTi/5iCI=";
+
+  nativeBuildInputs = [ pkg-config ];
+
+  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
+    udev
+  ];
 
   postInstall = ''
-    install -Dm 444 ${blackmagic.src}/driver/99-blackmagic.rules $out/lib/udev/rules.d/99-blackmagic.rules
+    install -Dm 444 ${blackmagic.src}/driver/99-blackmagic-plugdev.rules $out/lib/udev/rules.d/99-blackmagic-plugdev.rules
   '';
 
-  nativeInstallCheckInputs = [ versionCheckHook ];
-  versionCheckProgramArg = "--version";
+  nativeInstallCheckInputs = [
+    versionCheckHook
+    udevCheckHook
+  ];
   doInstallCheck = true;
 
   meta = {
-    description = "Black Magic Probe Firmware Manager";
-    homepage = "https://github.com/blackmagic-debug/bmputil";
+    description = "Black Magic Probe companion utility";
+    homepage = "https://codeberg.org/blackmagic-debug/bmputil";
     license = with lib.licenses; [
       mit
       asl20
     ];
-    mainProgram = "bmputil";
-    maintainers = [ lib.maintainers.shimun ];
+    mainProgram = "bmputil-cli";
+    maintainers = [
+      lib.maintainers.shimun
+      lib.maintainers.carlossless
+    ];
   };
 }

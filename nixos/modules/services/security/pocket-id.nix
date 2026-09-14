@@ -19,6 +19,7 @@ let
     optionalAttrs
     ;
   inherit (lib.types)
+    attrsOf
     bool
     path
     str
@@ -29,6 +30,11 @@ let
 
   format = pkgs.formats.keyValue { };
   settingsFile = format.generate "pocket-id-env-vars" cfg.settings;
+
+  exportCredentials =
+    n: _: ''export ${n}="$(${config.systemd.package}/bin/systemd-creds cat ${n}_FILE)"'';
+  exportAllCredentials = vars: lib.concatStringsSep "\n" (lib.mapAttrsToList exportCredentials vars);
+  getLoadCredentialList = lib.mapAttrsToList (n: v: "${n}_FILE:${v}") cfg.credentials;
 in
 {
   meta.maintainers = with maintainers; [
@@ -44,15 +50,37 @@ in
     environmentFile = mkOption {
       type = path;
       description = ''
-        Path to an environment file loaded for the Pocket ID service.
-
+        Path to an environment file to be loaded.
         This can be used to securely store tokens and secrets outside of the world-readable Nix store.
+
+        See [PocketID environment variables](https://pocket-id.org/docs/configuration/environment-variables).
 
         Example contents of the file:
         MAXMIND_LICENSE_KEY=your-license-key
+
+        Alternatively you can use `services.pocket-id.credentials` to define each variable in separate files.
       '';
       default = "/dev/null";
       example = "/var/lib/secrets/pocket-id";
+    };
+
+    credentials = mkOption {
+      type = attrsOf path;
+      default = { };
+      example = {
+        ENCRYPTION_KEY = "/run/secrets/pocket-id/encryption-key";
+      };
+      description = ''
+        Credentials which are loaded from the contents of the specified file paths.
+
+        This can be used to securely store tokens and secrets outside of the world-readable Nix store.
+
+        See [PocketID environment variables](https://pocket-id.org/docs/configuration/environment-variables) (all with the `_FILE` suffix).
+
+        Accepts an attrset mapping from the variable name *without its `_FILE` suffix* to the path on disk.
+
+        Alternatively you can use `services.pocket-id.environmentFile` to define all the variables in a single file.
+      '';
     };
 
     settings = mkOption {
@@ -81,7 +109,7 @@ in
             description = ''
               Whether to disable analytics.
 
-              See [docs page](https://pocket-id.org/docs/configuration/analytics/).
+              See the [analytics documentation](https://pocket-id.org/docs/configuration/analytics/).
             '';
             default = false;
           };
@@ -91,9 +119,9 @@ in
       default = { };
 
       description = ''
-        Environment variables that will be passed to Pocket ID, see
-        [configuration options](https://pocket-id.org/docs/configuration/environment-variables)
-        for supported values.
+        Environment variables to be passed.
+
+        See [PocketID environment variables](https://pocket-id.org/docs/configuration/environment-variables).
       '';
     };
 
@@ -101,7 +129,7 @@ in
       type = path;
       default = "/var/lib/pocket-id";
       description = ''
-        The directory where Pocket ID will store its data, such as the database.
+        The directory where Pocket ID will store its data, such as the database when using SQLite.
       '';
     };
 
@@ -119,18 +147,17 @@ in
   };
 
   config = mkIf cfg.enable {
-    warnings =
-      optional (cfg.settings ? MAXMIND_LICENSE_KEY)
-        "config.services.pocket-id.settings.MAXMIND_LICENSE_KEY will be stored as plaintext in the Nix store. Use config.services.pocket-id.environmentFile instead."
-      ++ concatMap
+    assertions = (
+      map
         (
-          # Added 2025-05-27
-          setting:
-          optional (cfg.settings ? "${setting}") ''
-            config.services.pocket-id.settings.${setting} is deprecated.
-            See https://pocket-id.org/docs/setup/migrate-to-v1/ for migration instructions.
-          ''
-        )
+          # Converted to assert 2026-01-08
+          setting: {
+            assertion = !(cfg.settings ? "${setting}");
+            message = ''
+              `services.pocket-id.settings.${setting}` is deprecated.
+              See [v1 migration guide](https://pocket-id.org/docs/setup/major-releases/migrate-v1).
+            '';
+          })
         [
           "PUBLIC_APP_URL"
           "PUBLIC_UI_CONFIG_DISABLED"
@@ -140,7 +167,40 @@ in
           "POSTGRES_CONNECTION_STRING"
           "SQLITE_DB_PATH"
           "INTERNAL_BACKEND_URL"
-        ];
+        ]
+    );
+
+    warnings =
+      (concatMap
+        (
+          setting:
+          optional (cfg.settings ? "${setting}") ''
+            `services.pocket-id.settings.${setting}` will be stored as plaintext in the Nix store. Use `services.pocket-id.credentials.${setting}` or `services.pocket-id.environmentFile` instead.
+          ''
+        )
+        [
+          "ENCRYPTION_KEY"
+          "MAXMIND_LICENSE_KEY"
+          "SMTP_PASSWORD"
+          "LDAP_BIND_PASSWORD"
+        ]
+      )
+      ++ (concatMap
+        (
+          # Added 2026-01-08
+          setting:
+          optional (cfg.settings ? "${setting}") ''
+            `services.pocket-id.settings.${setting}` is deprecated.
+            See [v2 migration guide](https://pocket-id.org/docs/setup/major-releases/migrate-v2).
+          ''
+        )
+        [
+          "DB_PROVIDER"
+          "KEYS_PATH"
+          "KEYS_STORAGE"
+          "LDAP_ATTRIBUTE_ADMIN_GROUP"
+        ]
+      );
 
     systemd.tmpfiles.rules = [
       "d ${cfg.dataDir} 0755 ${cfg.user} ${cfg.group}"
@@ -157,29 +217,35 @@ in
           settingsFile
         ];
 
+        script = ''
+          ${exportAllCredentials cfg.credentials}
+          exec ${getExe cfg.package}
+        '';
+
         serviceConfig = {
           Type = "simple";
           User = cfg.user;
           Group = cfg.group;
           WorkingDirectory = cfg.dataDir;
-          ExecStart = getExe cfg.package;
           Restart = "always";
+          RestartSec = 1;
           EnvironmentFile = [
             cfg.environmentFile
             settingsFile
           ];
+          LoadCredential = getLoadCredentialList;
 
           # Hardening
           AmbientCapabilities = "";
           CapabilityBoundingSet = "";
           DeviceAllow = "";
           DevicePolicy = "closed";
-          #IPAddressDeny = "any"; # communicates with the frontend
+          #IPAddressDeny = "any"; # provides the service through network
           LockPersonality = true;
           MemoryDenyWriteExecute = true;
           NoNewPrivileges = true;
           PrivateDevices = true;
-          PrivateNetwork = false; # communicates with the frontend
+          PrivateNetwork = false; # provides the service through network
           PrivateTmp = true;
           PrivateUsers = true;
           ProcSubset = "pid";
@@ -191,9 +257,11 @@ in
           ProtectKernelModules = true;
           ProtectKernelTunables = true;
           ProtectProc = "invisible";
-          ProtectSystem = "full"; # needs to write in cfg.dataDir
+          ProtectSystem = "strict";
+          ReadWritePaths = [ cfg.dataDir ];
           RemoveIPC = true;
           RestrictAddressFamilies = [
+            "AF_UNIX"
             "AF_INET"
             "AF_INET6"
           ];
@@ -212,7 +280,7 @@ in
             "@privileged"
             "@raw-io"
             "@reboot"
-            #"@resources" # vm test segfaults
+            "@resources"
             "@swap"
           ];
           UMask = "0077";

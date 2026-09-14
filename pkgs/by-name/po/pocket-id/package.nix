@@ -1,26 +1,31 @@
 {
   lib,
   fetchFromGitHub,
-  buildGoModule,
-  buildNpmPackage,
+  buildGo127Module,
+  stdenvNoCC,
+  nodejs,
+  pnpm_10,
+  fetchPnpmDeps,
+  pnpmConfigHook,
+  pnpmBuildHook,
   nixosTests,
   nix-update-script,
+  versionCheckHook,
 }:
-
-buildGoModule (finalAttrs: {
+buildGo127Module (finalAttrs: {
   pname = "pocket-id";
-  version = "1.1.0";
+  version = "2.14.0";
 
   src = fetchFromGitHub {
     owner = "pocket-id";
     repo = "pocket-id";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-J/s8wpKAU7w8Djtd7rtamCzg/7176W0ybSoAB/vHOjs=";
+    hash = "sha256-4BtVTfjXu/V9l4L2ucabpQXjrTBEB4cTrO4tb/oE3YU=";
   };
 
   sourceRoot = "${finalAttrs.src.name}/backend";
 
-  vendorHash = "sha256-jLwuBYiFZhUDIvG5uk78vXmo+wuqkFmyC5lAUZ3vUxU=";
+  vendorHash = "sha256-SrpUgyruwbIJZ1HB6sqidbGAwzBOqKcJzR+cH9E0siw=";
 
   env.CGO_ENABLED = 0;
   ldflags = [
@@ -32,26 +37,51 @@ buildGoModule (finalAttrs: {
     cp -r ${finalAttrs.frontend}/lib/pocket-id-frontend/dist frontend/dist
   '';
 
+  checkFlags = [
+    "-tags=unit"
+  ];
+
+  # many tests time out on darwin when waiting for 127.0.0.1 with only `__darwinAllowLocalNetworking = true`
+  # caused by `quic.DialAddr` of `quic-go`, works after loosening the sandbox
+  __darwinAllowLocalNetworking = finalAttrs.finalPackage.doCheck;
+  sandboxProfile = lib.optionalString stdenvNoCC.hostPlatform.isDarwin ''
+    (allow network* (remote ip "*:*"))
+  '';
+
   preFixup = ''
     mv $out/bin/cmd $out/bin/pocket-id
   '';
 
-  frontend = buildNpmPackage {
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  doInstallCheck = true;
+  versionCheckProgramArg = "version";
+
+  frontend = stdenvNoCC.mkDerivation {
     pname = "pocket-id-frontend";
     inherit (finalAttrs) version src;
 
-    sourceRoot = "${finalAttrs.src.name}/frontend";
-
-    npmDepsHash = "sha256-ykoyJtnqFK1fK60SbzrL7nhRcKYa3qYdHf9kFOC3EwE=";
-    npmFlags = [ "--legacy-peer-deps" ];
+    nativeBuildInputs = [
+      nodejs
+      pnpmConfigHook
+      pnpmBuildHook
+      pnpm_10
+    ];
+    pnpmDeps = fetchPnpmDeps {
+      inherit (finalAttrs) pname version src;
+      pnpm = pnpm_10;
+      fetcherVersion = 4;
+      hash = "sha256-KswQQVz2Xw/dG21134SObM3mQAKP2IHc+UM/BX/dvrI=";
+    };
 
     env.BUILD_OUTPUT_PATH = "dist";
+
+    pnpmWorkspaces = [ "pocket-id-frontend" ];
 
     installPhase = ''
       runHook preInstall
 
       mkdir -p $out/lib/pocket-id-frontend
-      cp -r dist $out/lib/pocket-id-frontend/dist
+      cp -r frontend/dist $out/lib/pocket-id-frontend/dist
 
       runHook postInstall
     '';
@@ -78,8 +108,14 @@ buildGoModule (finalAttrs: {
     maintainers = with lib.maintainers; [
       gepbird
       marcusramberg
+      tmarkus
       ymstnt
+      esch
     ];
     platforms = lib.platforms.unix;
+    identifiers.cpeParts = lib.meta.cpeFullVersionWithVendor "pocket-id" finalAttrs.version // {
+      # Vendor is pocket-id while product is pocket_id, deviating from pname.
+      product = "pocket_id";
+    };
   };
 })

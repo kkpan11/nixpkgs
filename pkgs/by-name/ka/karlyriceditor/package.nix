@@ -2,21 +2,34 @@
   stdenv,
   lib,
   fetchFromGitHub,
+  fetchpatch,
   qt6,
-  ffmpeg_4,
+  ffmpeg_7-headless,
   pkg-config,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "karlyriceditor";
-  version = "3.3";
+  version = "4.1.2";
 
   src = fetchFromGitHub {
     owner = "gyunaev";
     repo = "karlyriceditor";
     rev = finalAttrs.version;
-    hash = "sha256-i4uZtHxnreow7a5ZX6WCXMUSwgkUJS/1oDCJOgfFjHw=";
+    hash = "sha256-eW5sO1gjuwIighnlylJQd9QC+07s1MZX/oPyaHIi/Qs=";
   };
+
+  strictDeps = true;
+  __structuredAttrs = true;
+
+  patches = [
+    # fix build with Qt 6.10, remove after next release
+    # https://github.com/gyunaev/karlyriceditor/pull/38
+    (fetchpatch {
+      url = "https://github.com/gyunaev/karlyriceditor/commit/1d5e095cc691d4239c919d78209bdd05e57ed2aa.patch";
+      hash = "sha256-G93OfcQzgv8PhRQa8aUNsjaIt0GcGQxZGe4Eo0xP7TM=";
+    })
+  ];
 
   nativeBuildInputs = [
     qt6.wrapQtAppsHook
@@ -25,7 +38,7 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   buildInputs = [
-    ffmpeg_4
+    ffmpeg_7-headless
     qt6.qtmultimedia
   ];
 
@@ -49,7 +62,7 @@ stdenv.mkDerivation (finalAttrs: {
     maintainers = with lib.maintainers; [
       DPDmancul
     ];
-    mainProgram = "karlyricseditor";
+    mainProgram = "karlyriceditor";
     platforms = lib.platforms.linux;
   };
 })

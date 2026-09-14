@@ -1,34 +1,33 @@
 {
   lib,
-  stdenv,
   fetchFromGitHub,
   rustPlatform,
-  llvmPackages_19,
+  llvmPackages_20,
   libffi,
   zlib,
   libxml2,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "qir-runner";
-  version = "0.8.1";
+  version = "0.9.6";
 
   src = fetchFromGitHub {
     owner = "qir-alliance";
     repo = "qir-runner";
-    tag = "v${version}";
-    hash = "sha256-ExCIjn5XqDIIYhvEesHRtNZuc4mRr+b9EYE5LNKqNTc=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-5RfcHlJvdRjWfG6RbvIeCoMuos7O3Avu44uGcuOcz90=";
   };
 
-  nativeBuildInputs = [ llvmPackages_19.llvm ];
+  nativeBuildInputs = [ llvmPackages_20.llvm.dev ];
   buildInputs = [
     libffi
     zlib
     libxml2
+    llvmPackages_20.llvm
   ];
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-XzxkSzbjJdJaUmXK2nwd9naIDCsfXiLLlTyf8AFSvzA=";
+  cargoHash = "sha256-0CLYpdfu9T6db6tarDF7i5dkIXjSzsmvtN+yuqZvB6s=";
 
   meta = {
     description = "QIR bytecode runner to assist with QIR development and validation";
@@ -36,8 +35,5 @@ rustPlatform.buildRustPackage rec {
     homepage = "https://qir-alliance.github.io/qir-runner";
     license = lib.licenses.mit;
     maintainers = [ lib.maintainers.bbenno ];
-    # llvm-sys crate locates llvm by calling llvm-config
-    # which is not available when cross compiling
-    broken = stdenv.buildPlatform != stdenv.hostPlatform;
   };
-}
+})

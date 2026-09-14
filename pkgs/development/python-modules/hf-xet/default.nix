@@ -5,30 +5,32 @@
   pkg-config,
   rustPlatform,
   openssl,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "hf-xet";
-  version = "1.1.2";
+  version = "1.6.0";
   pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "huggingface";
     repo = "xet-core";
-    tag = "v${version}";
-    hash = "sha256-272xEw5W2Mo7a/OFpPbVNJMNc3TlmAsOdYFVw4HbXYk=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-SP6Z8iIkrt3FVXxXYdvjeiIAfcrVlfCPQq6C36DfhEM=";
   };
 
-  sourceRoot = "${src.name}/hf_xet";
+  sourceRoot = "${finalAttrs.src.name}/hf_xet";
 
   cargoDeps = rustPlatform.fetchCargoVendor {
-    inherit
+    inherit (finalAttrs)
       pname
       version
       src
       sourceRoot
       ;
-    hash = "sha256-wV8qF3EARKkJWGQVhOPjgi7yKL1idRiuZrJ/HnL1BsQ=";
+    hash = "sha256-pvtq9mKlmwaqAq281Lin/UgVGcRe2SEvyzCa+xWSwVQ=";
   };
 
   nativeBuildInputs = [
@@ -45,14 +47,13 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "hf_xet" ];
 
-  # No tests (yet?)
-  doCheck = false;
+  nativeCheckInputs = [ pytestCheckHook ];
 
   meta = {
     description = "Xet client tech, used in huggingface_hub";
     homepage = "https://github.com/huggingface/xet-core/tree/main/hf_xet";
-    changelog = "https://github.com/huggingface/xet-core/releases/tag/v${version}";
+    changelog = "https://github.com/huggingface/xet-core/releases/tag/${finalAttrs.src.tag}";
     license = lib.licenses.asl20;
     maintainers = with lib.maintainers; [ GaetanLepage ];
   };
-}
+})

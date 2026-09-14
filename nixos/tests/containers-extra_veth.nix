@@ -2,7 +2,6 @@
 {
   name = "containers-extra_veth";
   meta = {
-    maintainers = with lib.maintainers; [ kampfschlaefer ];
   };
 
   nodes.machine =
@@ -64,6 +63,7 @@
         };
         config = {
           networking.firewall.allowedTCPPorts = [ 80 ];
+          nix.enable = false; # disabled by default on the test's host. See all-tests.nix / tag(no-nix-by-default)
         };
       };
 

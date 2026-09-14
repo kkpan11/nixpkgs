@@ -1,5 +1,6 @@
 {
   buildPgrxExtension,
+  cargo-pgrx_0_16_1,
   postgresql,
   fetchFromGitHub,
   lib,
@@ -8,19 +9,18 @@
 
 buildPgrxExtension (finalAttrs: {
   pname = "pgvectorscale";
-  version = "0.7.0";
+  version = "0.9.1";
 
   src = fetchFromGitHub {
     owner = "timescale";
     repo = "pgvectorscale";
     tag = finalAttrs.version;
-    hash = "sha256-dy481k2SvyYXwwcsyLZSl3XlhSk9C5+4LfEfciB1DK4=";
+    hash = "sha256-4i5PhGfvfMPMhkmxfxvaWdIvmGHR1ZkMQzBSTNvqEgw=";
   };
 
   doCheck = false;
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-CeRyDn9VhxfjWFJ1/Z/XvOUQOSnDoHHZAqgfYTeKU0o=";
+  cargoHash = "sha256-2QmOxRKVkC/WBz6BRnxD57hH2E5ANHtNKrp/ytBaILI=";
   cargoPatches = [
     ./add-Cargo.lock.patch
   ];
@@ -31,6 +31,7 @@ buildPgrxExtension (finalAttrs: {
   ];
 
   inherit postgresql;
+  cargo-pgrx = cargo-pgrx_0_16_1;
 
   passthru.tests.extension = postgresqlTestExtension {
     inherit (finalAttrs) finalPackage;
@@ -64,8 +65,17 @@ buildPgrxExtension (finalAttrs: {
   };
 
   meta = {
+    # PostgreSQL 19 is not yet supported
+    # See https://github.com/timescale/pgvectorscale/issues/281
+    # Check after next package update.
+    broken =
+      lib.warnIf (finalAttrs.version != "0.9.1") "Is postgresql19Packages.pgvectorscale still broken?"
+        (lib.versionAtLeast postgresql.version "19");
     homepage = "https://github.com/timescale/pgvectorscale";
-    teams = [ lib.teams.flyingcircus ];
+    maintainers = [
+      lib.maintainers.leona
+      lib.maintainers.osnyx
+    ];
     description = "Complement to pgvector for high performance, cost efficient vector search on large workloads";
     license = lib.licenses.postgresql;
     platforms = postgresql.meta.platforms;

@@ -9,7 +9,7 @@
   harfbuzz,
   libogg,
   libwebp,
-  libX11,
+  libx11,
   mpg123,
   opusfile,
   SDL2,
@@ -22,13 +22,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "lagrange";
-  version = "1.18.5";
+  version = "1.21.1";
 
   src = fetchFromGitHub {
     owner = "skyjake";
     repo = "lagrange";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-NlnT8dGh05dDjSMxjaBnW7x/KjLgf2Ma0nbaiR7MpiY=";
+    hash = "sha256-n/zM3+10Ns2RDhOIqzuanvotsCHfoC1CqLQug0xJF9E=";
   };
 
   nativeBuildInputs = [
@@ -37,22 +37,21 @@ stdenv.mkDerivation (finalAttrs: {
     zip
   ];
 
-  buildInputs =
-    [
-      the-foundation
-      fribidi
-      harfbuzz
-      libogg
-      libwebp
-      libX11
-      mpg123
-      opusfile
-      SDL2
-    ]
-    ++ lib.optionals enableTUI [
-      ncurses
-      sealcurses
-    ];
+  buildInputs = [
+    the-foundation
+    fribidi
+    harfbuzz
+    libogg
+    libwebp
+    libx11
+    mpg123
+    opusfile
+    SDL2
+  ]
+  ++ lib.optionals enableTUI [
+    ncurses
+    sealcurses
+  ];
 
   cmakeFlags = [
     (lib.cmakeBool "ENABLE_TUI" enableTUI)
@@ -72,12 +71,13 @@ stdenv.mkDerivation (finalAttrs: {
     '';
 
   passthru = {
-    updateScript = nix-update-script { };
+    updateScript = nix-update-script { attrPath = "lagrange"; };
   };
 
   meta = {
     description = "Beautiful Gemini Client";
     homepage = "https://gmi.skyjake.fi/lagrange/";
+    mainProgram = "lagrange";
     license = lib.licenses.bsd2;
     maintainers = with lib.maintainers; [ sikmir ];
     platforms = lib.platforms.unix;

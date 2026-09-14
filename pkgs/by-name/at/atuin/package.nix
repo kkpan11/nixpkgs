@@ -1,39 +1,49 @@
 {
   lib,
-  stdenv,
   fetchFromGitHub,
   installShellFiles,
-  rustPlatform,
-  nixosTests,
   nix-update-script,
+  nixosTests,
+  openssl,
+  pkg-config,
+  rustPlatform,
+  stdenv,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "atuin";
-  version = "18.6.1";
+  version = "18.21.0";
 
   src = fetchFromGitHub {
     owner = "atuinsh";
     repo = "atuin";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-aRaUiGH2CTPtmbfrtLlNfoQzQWG817eazWctqwRlOCE=";
+    hash = "sha256-kz8qdgxg79jX3hfPi7EY9c9SmFqUK6lWnMTLb3TKDQQ=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-umagQYzOMr3Jh1RewjT0aX5FpYxs9N/70NZXoGaAfi4=";
+  cargoHash = "sha256-chuGpLq8XAZrCCtx2L/tVQSXNLrTgG2rnBGcCEvDjFg=";
 
   # atuin's default features include 'check-updates', which do not make sense
   # for distribution builds. List all other default features.
+  # see https://github.com/atuinsh/atuin/blob/main/crates/atuin/Cargo.toml#L42
   buildNoDefaultFeatures = true;
   buildFeatures = [
+    "ai"
     "client"
-    "sync"
-    "server"
     "clipboard"
     "daemon"
+    "pty-proxy"
+    "sync"
   ];
 
-  nativeBuildInputs = [ installShellFiles ];
+  nativeBuildInputs = [
+    installShellFiles
+    pkg-config
+  ];
+
+  buildInputs = [
+    openssl
+  ];
 
   postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     installShellCompletion --cmd atuin \
@@ -42,25 +52,29 @@ rustPlatform.buildRustPackage (finalAttrs: {
       --zsh <($out/bin/atuin gen-completions -s zsh)
   '';
 
-  passthru = {
-    tests = {
-      inherit (nixosTests) atuin;
-    };
-    updateScript = nix-update-script { };
-  };
-
   checkFlags = [
     # tries to make a network access
     "--skip=registration"
+    "--skip=api_client"
     # No such file or directory (os error 2)
     "--skip=sync"
     # PermissionDenied (Operation not permitted)
     "--skip=change_password"
     "--skip=multi_user_test"
-    "--skip=store::var::tests::build_vars"
-    # Tries to touch files
-    "--skip=build_aliases"
   ];
+
+  preCheck = ''
+    export HOME=$(mktemp -d)
+  '';
+
+  __darwinAllowLocalNetworking = true;
+
+  passthru = {
+    tests = {
+      inherit (nixosTests) atuin atuin-programs;
+    };
+    updateScript = nix-update-script { };
+  };
 
   meta = {
     description = "Replacement for a shell history which records additional commands context with optional encrypted synchronization between machines";
@@ -70,6 +84,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
       SuperSandro2000
       sciencentistguy
       _0x4A6F
+      rvdp
     ];
     mainProgram = "atuin";
   };

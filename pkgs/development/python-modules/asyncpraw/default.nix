@@ -2,57 +2,54 @@
   lib,
   aiofiles,
   aiohttp,
-  aiosqlite,
   asyncprawcore,
   buildPythonPackage,
+  coverage,
+  defusedxml,
   fetchFromGitHub,
-  flit-core,
-  mock,
+  hatchling,
   pytestCheckHook,
   pytest-asyncio,
   pytest-vcr,
-  pythonOlder,
-  requests-toolbelt,
   update-checker,
   vcrpy,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "asyncpraw";
-  version = "7.8.1";
+  version = "8.0.3";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "praw-dev";
     repo = "asyncpraw";
-    tag = "v${version}";
-    hash = "sha256-glWAQoUjMFbjU3C4+MGuRGSGJS9mun15+6udMPCf9nU=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-a09JI5fR/bln+t7trs8p3Vse6kj96sZqYN8wEbfzA14=";
   };
 
-  pythonRelaxDeps = [ "aiosqlite" ];
+  pythonRelaxDeps = [
+    "defusedxml"
+    "update-checker"
+  ];
 
-  # 'aiosqlite' is also checked when building the wheel
-  pypaBuildFlags = [ "--skip-dependency-check" ];
-
-  build-system = [ flit-core ];
+  build-system = [ hatchling ];
 
   dependencies = [
     aiofiles
     aiohttp
-    aiosqlite
     asyncprawcore
-    mock
+    defusedxml
     update-checker
   ];
 
   nativeCheckInputs = [
+    coverage
     pytestCheckHook
     pytest-asyncio
     pytest-vcr
     vcrpy
-    requests-toolbelt
   ];
 
   disabledTestPaths = [
@@ -70,8 +67,8 @@ buildPythonPackage rec {
   meta = {
     description = "Asynchronous Python Reddit API Wrapper";
     homepage = "https://asyncpraw.readthedocs.io/";
-    changelog = "https://github.com/praw-dev/asyncpraw/blob/v${version}/CHANGES.rst";
+    changelog = "https://github.com/praw-dev/asyncpraw/blob/${finalAttrs.src.rev}/CHANGES.rst";
     license = lib.licenses.bsd2;
     maintainers = [ lib.maintainers.amadejkastelic ];
   };
-}
+})

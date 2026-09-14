@@ -5,19 +5,18 @@
   installShellFiles,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "tealdeer";
-  version = "1.7.2";
+  version = "1.9.0";
 
   src = fetchFromGitHub {
-    owner = "dbrgn";
+    owner = "tealdeer-rs";
     repo = "tealdeer";
-    rev = "v${version}";
-    hash = "sha256-GZN7WE12f3MEoBfswag0O04UOCmZeYwt5CbYwddmwHs=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-aDhSxjRETpSaN+Dd9Aa1E+uZUVCp65QWne7mqJA7E54=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-Zk2L4cq7j9CkSc+cnZRWwhtfWP6y5faiMVGFFNkBwwA=";
+  cargoHash = "sha256-4qtjurYWbGrjtCGsJyu1aMCvSVJ1aC5TEdGRYMe5tUU=";
 
   nativeBuildInputs = [ installShellFiles ];
 
@@ -29,29 +28,24 @@ rustPlatform.buildRustPackage rec {
   '';
 
   # Disable tests that require Internet access:
-  checkFlags = [
-    "--skip test_autoupdate_cache"
-    "--skip test_create_cache_directory_path"
-    "--skip test_pager_flag_enable"
-    "--skip test_quiet_cache"
-    "--skip test_quiet_failures"
-    "--skip test_quiet_old_cache"
-    "--skip test_spaces_find_command"
-    "--skip test_update_cache"
-  ];
+  checkFeatures = [ "ignore-online-tests" ];
+  # tealdeer requires --test-threads=1
+  dontUseCargoParallelTests = true;
 
-  meta = with lib; {
+  meta = {
     description = "Very fast implementation of tldr in Rust";
-    homepage = "https://github.com/dbrgn/tealdeer";
-    maintainers = with maintainers; [
+    homepage = "https://github.com/tealdeer-rs/tealdeer";
+    changelog = "https://github.com/tealdeer-rs/tealdeer/blob/v${finalAttrs.version}/CHANGELOG.md";
+    maintainers = with lib.maintainers; [
       davidak
       newam
       mfrw
+      ryan4yin
     ];
-    license = with licenses; [
+    license = with lib.licenses; [
       asl20
       mit
     ];
     mainProgram = "tldr";
   };
-}
+})

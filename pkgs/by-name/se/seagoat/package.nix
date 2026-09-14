@@ -12,24 +12,29 @@
   nix-update-script,
 }:
 
-python3Packages.buildPythonApplication rec {
+python3Packages.buildPythonApplication (finalAttrs: {
   pname = "seagoat";
-  version = "0.54.18";
+  version = "1.2.0";
   pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "kantord";
     repo = "SeaGOAT";
-    tag = "v${version}";
-    hash = "sha256-vRaC6YrqejtRs8NHoTj6DB0CAYMSygRMDOTaJyk1BZc=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-ps+pwFOpCQWyI2SrOZSysq1kUeo53I2cfW2WC+SwccE=";
   };
 
   build-system = [ python3Packages.poetry-core ];
 
   pythonRelaxDeps = [
+    "chardet"
     "chromadb"
+    "deepmerge"
+    "ollama"
     "psutil"
     "setuptools"
+    "stop-words"
   ];
 
   dependencies = with python3Packages; [
@@ -42,10 +47,12 @@ python3Packages.buildPythonApplication rec {
     gitpython
     halo
     jsonschema
+    mcp
     nest-asyncio
     ollama
     psutil
     pygments
+    python-dotenv
     requests
     stop-words
     waitress
@@ -66,7 +73,6 @@ python3Packages.buildPythonApplication rec {
       versionCheckHook
       writableTmpDirAsHomeHook
     ];
-  versionCheckProgramArg = "--version";
 
   disabledTests = import ./failing_tests.nix;
 
@@ -93,9 +99,9 @@ python3Packages.buildPythonApplication rec {
   meta = {
     description = "Local-first semantic code search engine";
     homepage = "https://kantord.github.io/SeaGOAT/";
-    changelog = "https://github.com/kantord/SeaGOAT/blob/${src.tag}/CHANGELOG.md";
+    changelog = "https://github.com/kantord/SeaGOAT/blob/${finalAttrs.src.tag}/CHANGELOG.md";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ lavafroth ];
     mainProgram = "seagoat";
   };
-}
+})

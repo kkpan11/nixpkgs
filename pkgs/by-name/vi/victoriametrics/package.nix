@@ -2,6 +2,7 @@
   lib,
   buildGoModule,
   fetchFromGitHub,
+  nix-update-script,
   nixosTests,
   withServer ? true, # the actual metrics server
   withVmAgent ? true, # Agent to collect metrics
@@ -9,21 +10,21 @@
   withVmAuth ? true, # HTTP proxy for authentication
   withBackupTools ? true, # vmbackup, vmrestore
   withVmctl ? true, # vmctl is used to migrate time series
-  withVictoriaLogs ? true, # logs server
 }:
 
 buildGoModule (finalAttrs: {
   pname = "VictoriaMetrics";
-  version = "1.117.1";
+  version = "1.151.0";
 
   src = fetchFromGitHub {
     owner = "VictoriaMetrics";
     repo = "VictoriaMetrics";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-Y3Ai5e9bJnGlWfxOMWMhesJ/eHrklSbR+YmR1EgzFS0=";
+    hash = "sha256-LMilqB2enkzZr3zLcwnDLojtFV/lcOsXA9EhjiFarqE=";
   };
 
   vendorHash = null;
+  env.CGO_ENABLED = 0;
 
   subPackages =
     lib.optionals withServer [
@@ -43,12 +44,6 @@ buildGoModule (finalAttrs: {
     ++ lib.optionals withBackupTools [
       "app/vmbackup"
       "app/vmrestore"
-    ]
-    ++ lib.optionals withVictoriaLogs [
-      "app/victoria-logs"
-      "app/vlinsert"
-      "app/vlselect"
-      "app/vlstorage"
     ];
 
   postPatch = ''
@@ -58,11 +53,14 @@ buildGoModule (finalAttrs: {
     # This appears to be some kind of test server for development purposes only.
     rm -f app/vmui/packages/vmui/web/{go.mod,main.go}
 
+    # Relax go version to major.minor
+    sed -i -E 's/^(go[[:space:]]+[[:digit:]]+\.[[:digit:]]+)\.[[:digit:]]+$/\1/' go.mod
+    sed -i -E 's/^(## explicit; go[[:space:]]+[[:digit:]]+\.[[:digit:]]+)\.[[:digit:]]+$/\1/' vendor/modules.txt
+
     # Increase timeouts in tests to prevent failure on heavily loaded builders
     substituteInPlace lib/storage/storage_test.go \
       --replace-fail "time.After(10 " "time.After(120 " \
-      --replace-fail "time.NewTimer(30 " "time.NewTimer(120 " \
-      --replace-fail "time.NewTimer(time.Second * 10)" "time.NewTimer(time.Second * 120)" \
+      --replace-fail "time.NewTimer(time.Second * 10)" "time.NewTimer(time.Second * 120)"
   '';
 
   ldflags = [
@@ -78,17 +76,23 @@ buildGoModule (finalAttrs: {
 
   __darwinAllowLocalNetworking = true;
 
-  passthru.tests = {
-    inherit (nixosTests) victoriametrics;
+  passthru = {
+    tests = lib.recurseIntoAttrs nixosTests.victoriametrics;
+    updateScript = nix-update-script {
+      extraArgs = [
+        # avoid pmm and -cluster releases
+        "--version-regex"
+        "v([0-9\\.]+)"
+      ];
+    };
   };
 
   meta = {
     homepage = "https://victoriametrics.com/";
-    description = "fast, cost-effective and scalable time series database, long-term remote storage for Prometheus";
+    description = "Fast, cost-effective and scalable time series database, long-term remote storage for Prometheus";
     license = lib.licenses.asl20;
     maintainers = with lib.maintainers; [
       yorickvp
-      ivan
       leona
       shawn8901
       ryan4yin

@@ -24,18 +24,18 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "clapgrep";
-  version = "25.05+1";
+  version = "26.09";
 
   src = fetchFromGitHub {
     owner = "luleyleo";
     repo = "clapgrep";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-DL3voYSsNGjPb1CnPuJGg+7UgWYZO7cH5T2Z37BuDSE=";
+    hash = "sha256-6drZhyWwwunKWBMCtpihq+ak5SWkxKILf/BEHEHVWBc=";
   };
 
   cargoDeps = rustPlatform.fetchCargoVendor {
-    inherit (finalAttrs) src;
-    hash = "sha256-hTejIaXIAi8opZdE2X3vEi+VYoSti8RNB41ikVOWGPk=";
+    inherit (finalAttrs) pname version src;
+    hash = "sha256-lkQ78BR1wj+R0rFMQ8q5B12ZOHNEbniYieFZ+1M9au0=";
   };
 
   nativeBuildInputs = [
@@ -63,7 +63,7 @@ stdenv.mkDerivation (finalAttrs: {
   meta = {
     description = "Search through all your files";
     homepage = "https://github.com/luleyleo/clapgrep";
-    license = with lib.licenses; [ gpl3Only ];
+    license = lib.licenses.gpl3Only;
     platforms = lib.platforms.linux;
     maintainers = with lib.maintainers; [ pluiedev ];
     mainProgram = "clapgrep";

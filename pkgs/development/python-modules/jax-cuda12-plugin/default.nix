@@ -13,81 +13,49 @@
 }:
 let
   inherit (jaxlib) version;
-  inherit (cudaPackages) cudaAtLeast;
   inherit (jax-cuda12-pjrt) cudaLibPath;
 
-  getSrcFromPypi =
-    {
-      platform,
-      dist,
-      hash,
-    }:
-    fetchPypi {
-      inherit
-        version
-        platform
-        dist
-        hash
-        ;
-      pname = "jax_cuda12_plugin";
-      format = "wheel";
-      python = dist;
-      abi = dist;
+  platforms = {
+    x86_64-linux = {
+      name = "manylinux_2_27_x86_64";
+      hashes = {
+        cp312 = "sha256-8BVPvyNrsiMab8pSBN0eQ6wMHPDeOgAg//kQPlP7hXI=";
+        cp313 = "sha256-2O/FH9SZiimQxGfmPDhs/ckYfH0QWCXFxKt0Pn1SLRE=";
+        cp314 = "sha256-a7jxBoIVF+NEiKUyDkX13vSkYo8qJUr6bix+7DVBm74=";
+      };
     };
-
-  # upstream does not distribute jax-cuda12-plugin 0.4.38 binaries for aarch64-linux
-  srcs = {
-    "3.10-x86_64-linux" = getSrcFromPypi {
-      platform = "manylinux2014_x86_64";
-      dist = "cp310";
-      hash = "sha256-t3gE4OTZI605kJCV/3wbcj6sbz7l+f/LgFl7qGe1crg=";
-    };
-    "3.10-aarch64-linux" = getSrcFromPypi {
-      platform = "manylinux2014_aarch64";
-      dist = "cp310";
-      hash = "sha256-2p99ySQ+wo4DwOOjmFK0JG+pz8Pc1R5Chtggl/XGlcA=";
-    };
-    "3.11-x86_64-linux" = getSrcFromPypi {
-      platform = "manylinux2014_x86_64";
-      dist = "cp311";
-      hash = "sha256-H7+NS0JFVEOgia/RqI+xBqUboQdfxohLM53JZXHFthc=";
-    };
-    "3.11-aarch64-linux" = getSrcFromPypi {
-      platform = "manylinux2014_aarch64";
-      dist = "cp311";
-      hash = "sha256-QlzPE8vdRnixEJ+EOYgVelnk9Nm8KYIFrLFt8EijHDg=";
-    };
-    "3.12-x86_64-linux" = getSrcFromPypi {
-      platform = "manylinux2014_x86_64";
-      dist = "cp312";
-      hash = "sha256-GIXxW+OPrszPvySxhP/cHQ02Nxfq3SU01XWcDT0K9SM=";
-    };
-    "3.12-aarch64-linux" = getSrcFromPypi {
-      platform = "manylinux2014_aarch64";
-      dist = "cp312";
-      hash = "sha256-u2SgyAH5OnGKZU38aXQvL9YKJgdDEiBOvfT+QD2eK8Q=";
-    };
-    "3.13-x86_64-linux" = getSrcFromPypi {
-      platform = "manylinux2014_x86_64";
-      dist = "cp313";
-      hash = "sha256-KjV43At9RMwbAjOw/nrXZCZTgQldfqxkxWvQGzS+dvI=";
-    };
-    "3.13-aarch64-linux" = getSrcFromPypi {
-      platform = "manylinux2014_aarch64";
-      dist = "cp313";
-      hash = "sha256-uL/3pfx6QWcX4dWdqXKKH3qtB6i2WvoPhpYtQ+0OZU8=";
+    aarch64-linux = {
+      name = "manylinux_2_27_aarch64";
+      hashes = {
+        cp312 = "sha256-8qOC5dv2YzB0C/TbOQPGEuhLJN4JkTx5U+0kA8KWtoY=";
+        cp313 = "sha256-6KjWb0PQCzXAQwNmsRfBthKDdk8NENOWWr/jn4coSG8=";
+        cp314 = "sha256-PKEZswHZqTvLg3XGk3z3lJL/WVHKXLuLRvfjSvQtz9M=";
+      };
     };
   };
+  currentPlatform =
+    platforms.${stdenv.hostPlatform.system}
+      or (throw "jax-cuda12-plugin is not supported on ${stdenv.hostPlatform.system}");
+
+  dist = "cp${lib.replaceStrings [ "." ] [ "" ] python.pythonVersion}";
 in
 buildPythonPackage {
   pname = "jax-cuda12-plugin";
   inherit version;
   pyproject = false;
+  __structuredAttrs = true;
 
-  src = (
-    srcs."${python.pythonVersion}-${stdenv.hostPlatform.system}"
-      or (throw "python${python.pythonVersion}Packages.jax-cuda12-plugin is not supported on ${stdenv.hostPlatform.system}")
-  );
+  src = fetchPypi {
+    pname = "jax_cuda12_plugin";
+    inherit version dist;
+    format = "wheel";
+    python = dist;
+    abi = dist;
+    platform = currentPlatform.name;
+    hash =
+      currentPlatform.hashes.${dist}
+        or (throw "python${python.pythonVersion}Packages.jax-cuda12-plugin is not supported");
+  };
 
   nativeBuildInputs = [
     autoPatchelfHook
@@ -102,9 +70,10 @@ buildPythonPackage {
   # * https://github.com/NixOS/nixpkgs/pull/375186
   # for more info.
   postInstall = ''
-    mkdir -p $out/${python.sitePackages}/jax_cuda12_plugin/cuda/bin
-    ln -s ${lib.getExe' cudaPackages.cuda_nvcc "ptxas"} $out/${python.sitePackages}/jax_cuda12_plugin/cuda/bin
-    ln -s ${lib.getExe' cudaPackages.cuda_nvcc "nvlink"} $out/${python.sitePackages}/jax_cuda12_plugin/cuda/bin
+    export BINPATH="$out/${python.sitePackages}/jax_cuda12_plugin/cuda/bin"
+    mkdir -p $BINPATH
+    ln -s ${lib.getExe' cudaPackages.cuda_nvcc "ptxas"} $BINPATH/ptxas
+    ln -s ${lib.getExe' cudaPackages.cuda_nvcc "nvlink"} $BINPATH/nvlink
   '';
 
   # jax-cuda12-plugin contains shared libraries that open other shared libraries via dlopen
@@ -129,10 +98,33 @@ buildPythonPackage {
     homepage = "https://github.com/jax-ml/jax/tree/main/jax_plugins/cuda";
     sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
     license = lib.licenses.asl20;
-    maintainers = with lib.maintainers; [ natsukium ];
-    platforms = lib.platforms.linux;
-    # see CUDA compatibility matrix
-    # https://jax.readthedocs.io/en/latest/installation.html#pip-installation-nvidia-gpu-cuda-installed-locally-harder
-    broken = !(cudaAtLeast "12.1") || !(lib.versionAtLeast cudaPackages.cudnn.version "9.1");
+    teams = [ lib.teams.cuda ];
+    maintainers = with lib.maintainers; [
+      GaetanLepage
+      natsukium
+    ];
+    platforms = lib.attrNames platforms;
+    problems =
+      lib.optionalAttrs (cudaPackages.cudaMajorVersion != "12") {
+        unsupported-cuda-version = {
+          message = ''
+            Incompatible cudaPackages version.
+              - Expected: 12
+              - Got: ${cudaPackages.cudaMajorVersion}
+          '';
+          kind = "broken";
+        };
+      }
+      // lib.optionalAttrs (lib.versionAtLeast cudaPackages.cudnn.version "10.0") {
+        unsupported-cudnn-version = {
+          message = ''
+            cudaPackages.cudnn is too new (${cudaPackages.cudnn.version}).
+
+            See CUDA compatibility matrix
+            https://docs.jax.dev/en/latest/installation.html#pip-installation-nvidia-gpu-cuda-installed-locally-harder
+          '';
+          kind = "broken";
+        };
+      };
   };
 }

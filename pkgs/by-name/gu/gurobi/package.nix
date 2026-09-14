@@ -16,14 +16,14 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "gurobi";
-  version = "12.0.2";
+  version = "13.0.3";
 
   src = fetchurl {
     url = "https://packages.gurobi.com/${lib.versions.majorMinor version}/gurobi${version}_${platform}.tar.gz";
     hash =
       {
-        aarch64-linux = "sha256-vlhF3OIMCVyS9Y31RS4eVhs4wQ4CUDGQZlNkf98Uji0=";
-        x86_64-linux = "sha256-DMSmk41YzGoonHdX2xLsioU9RTBLn4kQy4v6HgVa08U=";
+        aarch64-linux = "sha256-8Hlw047emSVkhHXat1K3qBwvIYVHknc0QLgfIZ0aMiQ=";
+        x86_64-linux = "sha256-LhaQNTWi22fBvhTwdd+lMs8dTVlh10LR+YlBVtj0xvE=";
       }
       .${stdenv.hostPlatform.system} or (throw "Unsupported system: ${stdenv.hostPlatform.system}");
   };
@@ -49,10 +49,6 @@ stdenv.mkDerivation rec {
 
     mkdir -p $out/bin
     cp bin/* $out/bin/
-    rm $out/bin/gurobi.sh
-    rm $out/bin/python*
-
-    cp lib/gurobi.py $out/bin/gurobi.sh
 
     mkdir -p $out/include
     cp include/gurobi*.h $out/include/

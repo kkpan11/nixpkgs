@@ -9,23 +9,20 @@
 let
   format = "wheel";
   pyShortVersion = "cp" + builtins.replaceStrings [ "." ] [ "" ] python.pythonVersion;
-  platforms = rec {
+  platforms = {
     aarch64-darwin =
-      if pyShortVersion == "cp313" then "macosx_10_13_universal2" else "macosx_10_9_universal2";
-    aarch64-linux = "manylinux2014_aarch64.manylinux_2_17_aarch64";
-    x86_64-darwin = aarch64-darwin;
+      if pyShortVersion == "cp314" then "macosx_10_15_universal2" else "macosx_10_13_universal2";
+    aarch64-linux = "manylinux_2_26_aarch64";
     x86_64-linux = "manylinux2014_x86_64.manylinux_2_17_x86_64";
   };
   platform = platforms.${stdenv.system} or (throw "Unsupported system: ${stdenv.system}");
-  hashes = rec {
-    cp312-aarch64-darwin = "sha256-i/0ygF6PxOotAlO1vq7yx2NXAxbyah9PLIbLqg6zqNc=";
-    cp312-aarch64-linux = "sha256-WvK9RiY4T/xwDCmvDh3WnK/m9tvW78045eMoc6RvPRI=";
-    cp312-x86_64-darwin = cp312-aarch64-darwin;
-    cp312-x86_64-linux = "sha256-ER0yOTo5o+Ld1erRdScx04izxoW3NVDGsMqaRdlUw2Q=";
-    cp313-aarch64-darwin = "sha256-V5HcmwKfBrMY1U4N+gf1yWiMJ+XHH3pUvNqv20wJBek=";
-    cp313-aarch64-linux = "sha256-s8rr72p8a6I1WYcqtz3NgEDHFW74DN4LWRGLvf0k53k=";
-    cp313-x86_64-darwin = cp313-aarch64-darwin;
-    cp313-x86_64-linux = "sha256-JAqrYPz7/lhvRW1uy8yOyjtapf/nF+agjEHIKWQCYTc=";
+  hashes = {
+    cp313-aarch64-darwin = "sha256-Zcp6DNHl7VfIDmE/NVCcCuqsFUTRdwW3P5pXB9QOJYg=";
+    cp313-aarch64-linux = "sha256-OnyM8RjyOB7J+A8ZkNUy6tZ9YfW7wL5Pl3/p6wzW/EE=";
+    cp313-x86_64-linux = "sha256-1U6n9B3/NRgCDBpiQPo++PiuMHcEC04eRF/mmiOemMo=";
+    cp314-aarch64-darwin = "sha256-RtVy4e9eOdrPu6JjqTPL4S/6dWgQWz5D7YE1NH2GYi4=";
+    cp314-aarch64-linux = "sha256-9woHRqVAX3sLO2kYilaWIcIoyQ9t/6JiGeR7gtyPTok=";
+    cp314-x86_64-linux = "sha256-wuh9n7Upf6JgpiZmpn8p2L6TkCeQXNo1PKG2IEchLog=";
   };
   hash =
     hashes."${pyShortVersion}-${stdenv.system}"
@@ -33,7 +30,7 @@ let
 in
 buildPythonPackage rec {
   pname = "gurobipy";
-  version = "12.0.2";
+  version = "13.0.3";
   inherit format;
 
   src = fetchPypi {

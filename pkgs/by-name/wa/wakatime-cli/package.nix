@@ -1,6 +1,5 @@
 {
   lib,
-  stdenv,
   buildGoModule,
   fetchFromGitHub,
   testers,
@@ -8,42 +7,33 @@
   writableTmpDirAsHomeHook,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "wakatime-cli";
-  version = "1.115.3";
+  version = "2.26.0";
 
   src = fetchFromGitHub {
     owner = "wakatime";
     repo = "wakatime-cli";
-    tag = "v${version}";
-    hash = "sha256-czoAX9CKvIZjODeKcadX9vzBhOcMeyjwbljv1PrMtOg=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-iZ5VzEncryr7rcPA9ly8Q4zlIvV78ytsTKXbIeYqTj4=";
   };
 
-  vendorHash = "sha256-1yqpz3DqWHXw3ihh7YAKtl5Co91VAbBMRu68S/igrMc=";
+  vendorHash = "sha256-QSvd688wjKKnSSnHjlmXxgbT7xXl1hf/juhOLK1qWDw=";
 
   ldflags = [
     "-s"
     "-w"
-    "-X github.com/wakatime/wakatime-cli/pkg/version.Version=${version}"
+    "-X github.com/wakatime/wakatime-cli/pkg/version.Version=${finalAttrs.version}"
   ];
 
-  # dial tcp 127.0.0.1:51272: connect: operation not permitted
-  # and goroutine 33 [IO wait, 10 minutes] on darwin
-  doCheck = !stdenv.hostPlatform.isDarwin;
+  __darwinAllowLocalNetworking = true;
 
   nativeCheckInputs = [ writableTmpDirAsHomeHook ];
 
   checkFlags =
     let
       skippedTests = [
-        # Tests requiring network
-        "TestFileExperts"
-        "TestSendHeartbeats"
-        "TestSendHeartbeats_ExtraHeartbeats"
-        "TestSendHeartbeats_IsUnsavedEntity"
-        "TestSendHeartbeats_NonExistingExtraHeartbeatsEntity"
-        "TestSendHeartbeats_ExtraHeartbeatsIsUnsavedEntity"
-        "TestFileExperts_Err(Auth|Api|BadRequest)"
+        "TestLoadParams_APIKey_FromVault_Err_Darwin"
       ];
     in
     [ "-skip=^${builtins.concatStringsSep "$|^" skippedTests}$" ];
@@ -60,4 +50,4 @@ buildGoModule rec {
     maintainers = with lib.maintainers; [ sigmanificient ];
     mainProgram = "wakatime-cli";
   };
-}
+})

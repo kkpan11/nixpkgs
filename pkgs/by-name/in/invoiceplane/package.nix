@@ -3,25 +3,20 @@
   fetchFromGitHub,
   nixosTests,
   fetchYarnDeps,
-  nodejs,
   php,
   yarnConfigHook,
   yarnBuildHook,
   yarnInstallHook,
-  nodePackages,
-  python3,
-  pkg-config,
-  libsass,
-  stdenv,
+  grunt-cli,
   fetchzip,
 }:
 let
-  version = "1.6.2";
+  version = "1.7.2";
   # Fetch release tarball which contains language files
   # https://github.com/InvoicePlane/InvoicePlane/issues/1170
   languages = fetchzip {
     url = "https://github.com/InvoicePlane/InvoicePlane/releases/download/v${version}/v${version}.zip";
-    hash = "sha256-ME8ornP2uevvH8DzuI25Z8OV0EP98CBgbunvb2Hbr9M=";
+    hash = "sha256-DpQazuLOJnNGrrQo7l6uQReoKZEd5es2DT0a50NuQB0=";
   };
 in
 php.buildComposerProject2 (finalAttrs: {
@@ -32,44 +27,28 @@ php.buildComposerProject2 (finalAttrs: {
     owner = "InvoicePlane";
     repo = "InvoicePlane";
     tag = "v${version}";
-    hash = "sha256-E2TZ/FhlVKZpGuczXb/QLn27gGiO7YYlAkPSolTEoeQ=";
+    hash = "sha256-LC/c1wdVNguv8BrrY7ysVwomgG8uTPoY1Fw8/EPFk2I=";
   };
 
-  vendorHash = "sha256-eq3YKIZZzZihDYgFH3YTETHvNG6hAE/oJ5Ul2XRMn4U=";
+  # Composer.lock validation currently fails for unknown reason
+  composerStrictValidation = true;
 
-  buildInputs = [ libsass ];
+  vendorHash = "sha256-BRNglvJMREFD9iHPqXycw1WYlxuV9fL8/Zoba2Z3p8w=";
 
   nativeBuildInputs = [
     yarnConfigHook
     yarnBuildHook
     yarnInstallHook
     # Needed for executing package.json scripts
-    nodePackages.grunt-cli
-    pkg-config
-    (python3.withPackages (ps: with ps; [ distutils ]))
-    stdenv.cc
+    grunt-cli
   ];
 
   offlineCache = fetchYarnDeps {
-    yarnLock = "${finalAttrs.src}/yarn.lock";
-    hash = "sha256-KVlqC9zSijPP4/ifLBHD04fm6IQJpil0Gy9M3FNvUUw=";
+    inherit (finalAttrs) src patches;
+    hash = "sha256-faEq9sVsE5xcqL07IIEmXcavcWPZicb7asmuhuBI+h4=";
   };
 
-  # Upstream composer.json file is missing the name, description and license fields
-  composerStrictValidation = false;
-
   postBuild = ''
-    # Building node-sass dependency
-    mkdir -p "$HOME/.node-gyp/${nodejs.version}"
-    echo 9 >"$HOME/.node-gyp/${nodejs.version}/installVersion"
-    ln -sfv "${nodejs}/include" "$HOME/.node-gyp/${nodejs.version}"
-    export npm_config_nodedir=${nodejs}
-
-    pushd node_modules/node-sass
-    LIBSASS_EXT=auto yarn run build --offline
-    popd
-
-    # Running package.json scripts
     grunt build
   '';
 
@@ -78,7 +57,7 @@ php.buildComposerProject2 (finalAttrs: {
     chmod -R u+w $out/share
     mv $out/share/php/invoiceplane/* $out/
     cp -r ${languages}/application/language $out/application/
-    rm -r $out/{composer.json,composer.lock,CONTRIBUTING.md,docker-compose.yml,Gruntfile.js,package.json,node_modules,yarn.lock,share}
+    rm -r $out/{composer.json,composer.lock,docker-compose.yml,Gruntfile.js,package.json,node_modules,yarn.lock,share}
   '';
 
   passthru.tests = {

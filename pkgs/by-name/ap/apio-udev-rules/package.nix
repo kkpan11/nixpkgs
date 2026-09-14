@@ -2,20 +2,27 @@
   lib,
   stdenvNoCC,
   fetchFromGitHub,
+  udevCheckHook,
 }:
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "apio-udev-rules";
-  version = "0.9.5";
+  version = "1.5.0";
 
   src = fetchFromGitHub {
     owner = "FPGAwars";
     repo = "apio";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-VU4tOszGkw20DWW2SerFsnjFiSkrSwqBcwosGnHJfU8=";
+    hash = "sha256-tdsp7cBmZ2RjGJxtDre8v7Xw8KUmJs6YiOG80DUwd/A=";
   };
 
   dontBuild = true;
+
+  nativeBuildInputs = [
+    udevCheckHook
+  ];
+
+  doInstallCheck = true;
 
   # 80-* renamed to 70-* for uaccess TAG
   installPhase = ''
@@ -26,7 +33,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   '';
 
   meta = {
-    description = "apio udev rules list";
+    description = "Apio udev rules list";
     homepage = "https://github.com/FPGAwars/apio";
     platforms = lib.platforms.linux;
     license = lib.licenses.gpl2Only;

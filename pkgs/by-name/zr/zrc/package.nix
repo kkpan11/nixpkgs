@@ -8,13 +8,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "zrc";
-  version = "2.1";
+  version = "2.8";
 
   src = fetchFromGitHub {
     owner = "Edd12321";
     repo = "zrc";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-prUbuXyhIJczCvjqwm9pp2n75LY10+6SzYaOHd+S748=";
+    hash = "sha256-lZLH1k6kYnAjuxmwwgFWW4FyuoG8fTY5FxtS5DX1Evw=";
   };
 
   nativeBuildInputs = [
@@ -22,7 +22,10 @@ stdenv.mkDerivation (finalAttrs: {
     flex
   ];
 
-  makeFlags = [ "PREFIX=$(out)" ];
+  makeFlags = [
+    "PREFIX=$(out)"
+    "SYSCONFDIR=$(out)/etc"
+  ];
 
   meta = {
     description = "UNIX shell and scripting language with syntax similar to Tcl";

@@ -5,16 +5,16 @@
   python3,
 }:
 
-python3.pkgs.buildPythonApplication rec {
+python3.pkgs.buildPythonApplication (finalAttrs: {
   pname = "vunnel";
-  version = "0.32.0";
+  version = "0.63.1";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "anchore";
     repo = "vunnel";
-    tag = "v${version}";
-    hash = "sha256-5zO1/lfB5ULJqSt14by9OYFT/0H9ZGSkA90wmf7dB5U=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-HdMpJRFwTK5iiIuAogoDD7V5lbdMkMx1jYmmIKNb9iE=";
     leaveDotGit = true;
   };
 
@@ -45,6 +45,7 @@ python3.pkgs.buildPythonApplication rec {
       lxml
       mashumaro
       mergedeep
+      oras
       orjson
       packageurl-python
       pytest-snapshot
@@ -54,20 +55,22 @@ python3.pkgs.buildPythonApplication rec {
       sqlalchemy
       xsdata
       xxhash
+      yardstick
       zstandard
     ]
     ++ xsdata.optional-dependencies.cli
     ++ xsdata.optional-dependencies.lxml
     ++ xsdata.optional-dependencies.soap;
 
-  nativeCheckInputs =
-    [ git ]
-    ++ (with python3.pkgs; [
-      jsonschema
-      pytest-mock
-      pytest-unordered
-      pytestCheckHook
-    ]);
+  nativeCheckInputs = [
+    git
+  ]
+  ++ (with python3.pkgs; [
+    jsonschema
+    pytest-mock
+    pytest-unordered
+    pytestCheckHook
+  ]);
 
   pythonImportsCheck = [ "vunnel" ];
 
@@ -76,14 +79,16 @@ python3.pkgs.buildPythonApplication rec {
     "test_status"
     # TypeError
     "test_parser"
+    # Test require network access
+    "test_rhel_provider_supports_ignore_hydra_errors"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Tool for collecting vulnerability data from various sources";
     homepage = "https://github.com/anchore/vunnel";
-    changelog = "https://github.com/anchore/vunnel/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/anchore/vunnel/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
     mainProgram = "vunnel";
   };
-}
+})

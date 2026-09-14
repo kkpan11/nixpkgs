@@ -17,33 +17,32 @@ python.pkgs.buildPythonApplication rec {
   pyproject = true;
 
   pythonRelaxDeps = [
-    "pillow"
-    "pydantic-settings"
+    "onnx"
   ];
 
   build-system = with python.pkgs; [
     hatchling
-    cython
   ];
 
   dependencies =
     with python.pkgs;
     [
-      insightface
-      opencv-python-headless
-      pillow
-      fastapi
-      uvicorn
-      pydantic
-      pydantic-settings
       aiocache
-      rich
-      ftfy
-      python-multipart
-      orjson
+      fastapi
       gunicorn
       huggingface-hub
+      numpy
+      onnx
+      opencv-python-headless
+      orjson
+      pillow
+      pydantic
+      pydantic-settings
+      python-multipart
+      rich
       tokenizers
+      uvicorn
+      rapidocr
     ]
     ++ uvicorn.optional-dependencies.standard;
 

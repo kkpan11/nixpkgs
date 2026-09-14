@@ -4,24 +4,28 @@
   fetchFromGitHub,
   pkg-config,
   libsecret,
+  libfido2,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "protonmail-bridge";
-  version = "3.20.0";
+  version = "3.25.0";
 
   src = fetchFromGitHub {
     owner = "ProtonMail";
     repo = "proton-bridge";
-    rev = "v${version}";
-    hash = "sha256-Vd7r3devsWGyqFLAoNzUT0hu9oWcDA9XPTTgSUfr17c=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-kKwsfFns5eKOEyljUB5DRozb0N6sabY4RGYt9MeePOo=";
   };
 
-  vendorHash = "sha256-KXq2KIVHCaY/b1nT+GMBY8pT4GLl9l6sT2RiNIH/6Wo=";
+  vendorHash = "sha256-Ox/Y6aVkL14YkN2kasT7DtBZkcUA1qcrsb0Yoa4Oizw=";
 
   nativeBuildInputs = [ pkg-config ];
 
-  buildInputs = [ libsecret ];
+  buildInputs = [
+    libsecret
+    libfido2
+  ];
 
   preBuild = ''
     patchShebangs ./utils/
@@ -33,8 +37,8 @@ buildGoModule rec {
       constants = "github.com/ProtonMail/proton-bridge/v3/internal/constants";
     in
     [
-      "-X ${constants}.Version=${version}"
-      "-X ${constants}.Revision=${src.rev}"
+      "-X ${constants}.Version=${finalAttrs.version}"
+      "-X ${constants}.Revision=${finalAttrs.src.rev}"
       "-X ${constants}.buildTime=unknown"
       "-X ${constants}.FullAppName=ProtonMailBridge" # Should be "Proton Mail Bridge", but quoting doesn't seems to work in nix's ldflags
     ];
@@ -48,7 +52,7 @@ buildGoModule rec {
   '';
 
   meta = {
-    changelog = "https://github.com/ProtonMail/proton-bridge/blob/${src.rev}/Changelog.md";
+    changelog = "https://github.com/ProtonMail/proton-bridge/blob/${finalAttrs.src.rev}/Changelog.md";
     description = "Use your ProtonMail account with your local e-mail client";
     downloadPage = "https://github.com/ProtonMail/proton-bridge/releases";
     homepage = "https://github.com/ProtonMail/proton-bridge";
@@ -65,4 +69,4 @@ buildGoModule rec {
       daniel-fahey
     ];
   };
-}
+})

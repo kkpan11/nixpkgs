@@ -2,20 +2,25 @@
   lib,
   stdenv,
   cmake,
+  cctools,
   fetchFromGitHub,
   git,
   gmp,
   cadical,
+  leangz,
+  makeWrapper,
   pkg-config,
   libuv,
   enableMimalloc ? true,
   perl,
   testers,
 }:
-
+let
+  cadical' = cadical.override { version = "2.1.3"; };
+in
 stdenv.mkDerivation (finalAttrs: {
   pname = "lean4";
-  version = "4.19.0";
+  version = "4.30.0";
 
   # Using a vendored version rather than nixpkgs' version to match the exact version required by
   # Lean.  Apparently, even a slight version change can impact greatly the final performance.
@@ -30,7 +35,7 @@ stdenv.mkDerivation (finalAttrs: {
     owner = "leanprover";
     repo = "lean4";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-Iw5JSamrty9l6aJ2WwslAolSHfi2q0UO8P8HI1gp+j8=";
+    hash = "sha256-YTsfIppd6km7wOjAxRH5KMPsW++ztFDCJT2up72J86Q=";
   };
 
   postPatch =
@@ -48,7 +53,7 @@ stdenv.mkDerivation (finalAttrs: {
     + (lib.optionalString enableMimalloc ''
       substituteInPlace CMakeLists.txt \
         --replace-fail 'MIMALLOC-SRC' '${finalAttrs.mimalloc-src}'
-      for file in src/CMakeLists.txt src/runtime/CMakeLists.txt; do
+      for file in stage0/src/CMakeLists.txt stage0/src/runtime/CMakeLists.txt src/CMakeLists.txt src/runtime/CMakeLists.txt; do
         substituteInPlace "$file" \
           --replace-fail '${pattern}' '${finalAttrs.mimalloc-src}'
       done
@@ -61,13 +66,21 @@ stdenv.mkDerivation (finalAttrs: {
   nativeBuildInputs = [
     cmake
     pkg-config
-  ];
+    makeWrapper
+    leangz # Provides leantar
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [ cctools.libtool ];
 
   buildInputs = [
     gmp
     libuv
-    cadical
+    cadical'
   ];
+
+  postInstall = ''
+    wrapProgram $out/bin/lean \
+      --prefix PATH : ${cadical'}/bin
+  '';
 
   nativeCheckInputs = [
     git
@@ -79,6 +92,7 @@ stdenv.mkDerivation (finalAttrs: {
   cmakeFlags = [
     "-DUSE_GITHASH=OFF"
     "-DINSTALL_LICENSE=OFF"
+    "-DINSTALL_CADICAL=OFF"
     "-DUSE_MIMALLOC=${if enableMimalloc then "ON" else "OFF"}"
   ];
 
@@ -89,15 +103,17 @@ stdenv.mkDerivation (finalAttrs: {
     };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Automatic and interactive theorem prover";
     homepage = "https://leanprover.github.io/";
     changelog = "https://github.com/leanprover/lean4/blob/${finalAttrs.src.tag}/RELEASES.md";
-    license = licenses.asl20;
-    platforms = platforms.all;
-    maintainers = with maintainers; [
+    license = lib.licenses.asl20;
+    platforms = lib.platforms.all;
+    maintainers = with lib.maintainers; [
       danielbritten
       jthulhu
+      nadja-y
+      niklashh
     ];
     mainProgram = "lean";
   };

@@ -5,26 +5,30 @@
   installShellFiles,
   pkg-config,
   openssl,
-  writeShellScript,
-  nix-update,
-  gitMinimal,
+  nix-update-script,
   versionCheckHook,
   callPackage,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "typst";
-  version = "0.13.1";
+  version = "0.15.1";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "typst";
     repo = "typst";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-vbBwIQt4xWZaKpXgFwDsRQIQ0mmsQPRR39m8iZnnuj0=";
+    hash = "sha256-Z0DM/fBKIvA8y53GUlPrgthnXfOFbnzuPCOM9/ssrI8=";
+    leaveDotGit = true;
+    postFetch = ''
+      cd $out
+      git rev-parse HEAD > COMMIT
+      rm -rf .git
+    '';
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-4kVj2BODEFjLcrh5sxfcgsdLF2Zd3K1GnhA4DEz1Nl4=";
+  cargoHash = "sha256-+/2L4o9d8UENPtJAD/sSqf5ysOfHJYZgnvhOAoRdK40=";
 
   nativeBuildInputs = [
     installShellFiles
@@ -38,14 +42,18 @@ rustPlatform.buildRustPackage (finalAttrs: {
   env = {
     GEN_ARTIFACTS = "artifacts";
     OPENSSL_NO_VENDOR = true;
-    # to not have "unknown hash" in help output
-    TYPST_VERSION = finalAttrs.version;
   };
 
   # Fix for "Found argument '--test-threads' which wasn't expected, or isn't valid in this context"
   postPatch = ''
-    substituteInPlace tests/src/tests.rs --replace-fail 'ARGS.num_threads' 'ARGS.test_threads'
-    substituteInPlace tests/src/args.rs --replace-fail 'num_threads' 'test_threads'
+    substituteInPlace tests/src/tests.rs --replace-fail \
+      'ARGS.num_threads' \
+      'ARGS.test_threads'
+    substituteInPlace tests/src/args.rs --replace-fail \
+      'num_threads' \
+      'test_threads'
+
+    export TYPST_COMMIT_SHA="$(cat COMMIT | cut -c1-8)"
   '';
 
   postInstall = ''
@@ -59,43 +67,24 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   doInstallCheck = true;
   nativeInstallCheckInputs = [ versionCheckHook ];
-  versionCheckProgramArg = "--version";
 
   passthru = {
-    updateScript = {
-      command = [
-        (writeShellScript "update-typst.sh" ''
-          currentVersion=$(nix-instantiate --eval -E "with import ./. {}; typst.version or (lib.getVersion typst)" | tr -d '"')
-          ${lib.getExe nix-update} typst > /dev/null
-          latestVersion=$(nix-instantiate --eval -E "with import ./. {}; typst.version or (lib.getVersion typst)" | tr -d '"')
-          changes=()
-          if [[ "$currentVersion" != "$latestVersion" ]]; then
-            changes+=("{\"attrPath\":\"typst\",\"oldVersion\":\"$currentVersion\",\"newVersion\":\"$latestVersion\",\"files\":[\"pkgs/by-name/ty/typst/package.nix\"]}")
-          fi
-          maintainers/scripts/update-typst-packages.py --output pkgs/by-name/ty/typst/typst-packages-from-universe.toml > /dev/null
-          ${lib.getExe gitMinimal} diff --quiet HEAD -- pkgs/by-name/ty/typst/typst-packages-from-universe.toml || changes+=("{\"attrPath\":\"typstPackages\",\"oldVersion\":\"0\",\"newVersion\":\"1\",\"files\":[\"pkgs/by-name/ty/typst/typst-packages-from-universe.toml\"]}")
-          echo -n "["
-            IFS=,; echo -n "''${changes[*]}"
-          echo "]"
-        '')
-      ];
-      supportedFeatures = [ "commit" ];
-    };
+    updateScript = nix-update-script { };
     packages = callPackage ./typst-packages.nix { };
-    withPackages = callPackage ./with-packages.nix { };
+    wrapper = callPackage ./wrapper.nix { };
+    withPackages = ps: finalAttrs.passthru.wrapper { packages = ps; };
   };
 
   meta = {
-    changelog = "https://github.com/typst/typst/releases/tag/v${finalAttrs.version}";
+    changelog = "https://github.com/typst/typst/releases/tag/${finalAttrs.src.tag}";
     description = "New markup-based typesetting system that is powerful and easy to learn";
     homepage = "https://github.com/typst/typst";
     license = lib.licenses.asl20;
     mainProgram = "typst";
     maintainers = with lib.maintainers; [
-      drupol
-      figsoda
       kanashimia
       RossSmyth
+      faukah
     ];
   };
 })

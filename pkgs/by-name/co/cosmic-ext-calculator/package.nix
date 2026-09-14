@@ -8,22 +8,23 @@
   rustPlatform,
   fetchFromGitHub,
   libcosmicAppHook,
+  libqalculate,
   just,
   nix-update-script,
+  fetchpatch,
 }:
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "cosmic-ext-calculator";
-  version = "0.1.1";
+  version = "0.2.1";
 
   src = fetchFromGitHub {
     owner = "cosmic-utils";
     repo = "calculator";
-    tag = version;
-    hash = "sha256-UO3JKPsztptNEFAxolRui9FxtCsTRgpXhHH242i9b6E=";
+    tag = finalAttrs.version;
+    hash = "sha256-t8xuM0B2eh2AbAhDgSOGapTwmmm9eC+wHsqwq4Jn5yU=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-a4IOmCWKX8RR8xeKS6wdsTlNyTr91B93bYMDx/+/+04=";
+  cargoHash = "sha256-a4WckNyKXS71dT0uYbO7tUUmD0Dw8vSzrPp29O4aiAk=";
 
   nativeBuildInputs = [
     libcosmicAppHook
@@ -42,10 +43,16 @@ rustPlatform.buildRustPackage rec {
     "target/${stdenv.hostPlatform.rust.cargoShortTarget}/release/cosmic-ext-calculator"
   ];
 
+  preFixup = ''
+    libcosmicAppWrapperArgs+=(
+      --prefix PATH : ${lib.makeBinPath [ libqalculate ]}
+    )
+  '';
+
   passthru.updateScript = nix-update-script { };
 
   meta = {
-    changelog = "https://github.com/cosmic-utils/calculator/releases/tag/${version}";
+    changelog = "https://github.com/cosmic-utils/calculator/releases/tag/${finalAttrs.version}";
     description = "Calculator for the COSMIC Desktop Environment";
     homepage = "https://github.com/cosmic-utils/calculator";
     license = lib.licenses.gpl3Only;
@@ -54,4 +61,4 @@ rustPlatform.buildRustPackage rec {
     platforms = lib.platforms.linux;
     sourceProvenance = [ lib.sourceTypes.fromSource ];
   };
-}
+})

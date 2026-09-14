@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
 {
   name = "systemd-journal";
@@ -12,21 +12,18 @@
   nodes.auditd = {
     security.auditd.enable = true;
     security.audit.enable = true;
-    environment.systemPackages = [ pkgs.audit ];
-    boot.kernel.sysctl."kernel.printk_ratelimit" = 0;
-    boot.kernelParams = [ "audit_backlog_limit=8192" ];
   };
   nodes.journaldAudit = {
-    services.journald.audit = true;
+    # Verify that the module's option default remains overridable by downstream defaults.
+    services.journald.settings.Journal.Audit = lib.mkDefault true;
     security.audit.enable = true;
-    environment.systemPackages = [ pkgs.audit ];
-    boot.kernel.sysctl."kernel.printk_ratelimit" = 0;
-    boot.kernelParams = [ "audit_backlog_limit=8192" ];
   };
   nodes.containerCheck = {
     containers.c1 = {
       autoStart = true;
-      config = { };
+      config = {
+        nix.enable = false; # disabled by default on the test's host. See all-tests.nix / tag(no-nix-by-default)
+      };
     };
   };
 
@@ -46,21 +43,17 @@
       # logs should end up in the auditd audit log
       auditd.succeed("grep 'unit=systemd-journald' /var/log/audit/audit.log")
       # logs should not end up in kmesg
-      machine.fail("journalctl _TRANSPORT=kernel --grep 'unit=systemd-journald'")
+      auditd.fail("journalctl _TRANSPORT=kernel --grep 'unit=systemd-journald'")
 
 
     with subtest("journald audit"):
       journaldAudit.wait_for_unit("multi-user.target")
+      journaldAudit.succeed("grep -Fx 'Audit=true' /etc/systemd/journald.conf")
 
       # logs should end up in the journald
       journaldAudit.succeed("journalctl _TRANSPORT=audit --grep 'unit=systemd-journald'")
       # logs should NOT end up in audit log
       journaldAudit.fail("grep 'unit=systemd-journald' /var/log/audit/audit.log")
-      # FIXME: If systemd fixes #15324 this test will start failing.
-      # You can fix this text by removing the below line.
-      # logs ideally should NOT end up in kmesg, but they do due to
-      # https://github.com/systemd/systemd/issues/15324
-      journaldAudit.succeed("journalctl _TRANSPORT=kernel --grep 'unit=systemd-journald'")
 
 
     with subtest("container systemd-journald-audit not running"):

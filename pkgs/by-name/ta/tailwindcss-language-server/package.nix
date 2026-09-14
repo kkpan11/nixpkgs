@@ -1,55 +1,54 @@
 {
   lib,
-  stdenv,
+  stdenvNoCC,
   fetchFromGitHub,
-  nodejs_latest,
-  pnpm_9,
-  cacert,
+  nodejs,
+  pnpm_10,
+  fetchPnpmDeps,
+  pnpmConfigHook,
   nix-update-script,
 }:
-
-stdenv.mkDerivation (finalAttrs: {
+stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "tailwindcss-language-server";
-  version = "0.14.19";
+  version = "0.16.0";
 
   src = fetchFromGitHub {
     owner = "tailwindlabs";
     repo = "tailwindcss-intellisense";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-lAZ3BoecPB3+zmI8RataAcbk32avV9Ie+Ek6q/JcXnU=";
+    hash = "sha256-QMTzylHAO5s5VtyBAnHEoxKq8ndRyAdvh/N5xUYRLas=";
   };
 
-  pnpmDeps = pnpm_9.fetchDeps {
+  pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs)
       pname
       version
       src
       pnpmWorkspaces
-      prePnpmInstall
       ;
-    hash = "sha256-TxWaapm/nkyMi3JCj6TE56DhJYPBWBDGXOnzgB9uPjs=";
+    pnpm = pnpm_10;
+    fetcherVersion = 4;
+    hash = "sha256-5e6fC+5BwQm9TqZlnZ9GiPlVwCdEePTpUh4m4tt8qy4=";
   };
 
   nativeBuildInputs = [
-    nodejs_latest
-    pnpm_9.configHook
+    pnpmConfigHook
+    pnpm_10
   ];
 
-  buildInputs = [ nodejs_latest ];
+  buildInputs = [
+    nodejs
+  ];
 
-  pnpmWorkspaces = [ "@tailwindcss/language-server..." ];
-  prePnpmInstall = ''
-    # Warning section for "pnpm@v8"
-    # https://pnpm.io/cli/install#--filter-package_selector
-    pnpm config set dedupe-peer-dependents false
-    export NODE_EXTRA_CA_CERTS="${cacert}/etc/ssl/certs/ca-bundle.crt"
-  '';
+  pnpmWorkspaces = [
+    "@tailwindcss/language-server..."
+  ];
 
+  # Must build the "@tailwindcss/language-service" package. Dependency is linked via workspace by "pnpm"
+  # https://github.com/tailwindlabs/tailwindcss-intellisense/blob/v0.16.0/pnpm-lock.yaml#L77
   buildPhase = ''
     runHook preBuild
 
-    # Must build the "@tailwindcss/language-service" package. Dependency is linked via workspace by "pnpm"
-    # (https://github.com/tailwindlabs/tailwindcss-intellisense/blob/%40tailwindcss/language-server%40v0.0.27/pnpm-lock.yaml#L47)
     pnpm --filter "@tailwindcss/language-server..." build
 
     runHook postBuild
@@ -75,6 +74,6 @@ stdenv.mkDerivation (finalAttrs: {
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ happysalada ];
     mainProgram = "tailwindcss-language-server";
-    platforms = lib.platforms.all;
+    platforms = nodejs.meta.platforms;
   };
 })

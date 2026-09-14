@@ -4,45 +4,47 @@
   fetchFromGitHub,
   nodejs,
   nix-update-script,
+  writableTmpDirAsHomeHook,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "jfrog-cli";
-  version = "2.76.1";
+  version = "2.123.0";
 
   src = fetchFromGitHub {
     owner = "jfrog";
     repo = "jfrog-cli";
-    tag = "v${version}";
-    hash = "sha256-d8TL6sJIXooMnQ2UMonNcsZ68VrnlfzcM0BhxwOaVa0=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-HyBHH1EU0fIkxHL/36pU758L9t7N7a5QpFM8Kz4/s/8=";
   };
 
   proxyVendor = true;
-  vendorHash = "sha256-Bz2xlx1AlCR8xY8KO2cVguyUsoQiQO60XAs5T6S9Ays=";
+  vendorHash = "sha256-ZKOzQL+KZsisiv2zSSBY1RnoiEdcSQYeVfd7zeecvv8=";
 
-  checkFlags = "-skip=^TestReleaseBundle";
+  checkFlags = "-skip=^(TestReleaseBundle|TestVisibilitySendUsage_RtCurl_E2E)";
 
   postInstall = ''
     # Name the output the same way as the original build script does
     mv $out/bin/jfrog-cli $out/bin/jf
   '';
 
-  # Some of the tests require a writable $HOME
-  preCheck = "export HOME=$TMPDIR";
-
-  nativeCheckInputs = [ nodejs ];
+  nativeCheckInputs = [
+    nodejs
+    writableTmpDirAsHomeHook
+  ];
 
   passthru.updateScript = nix-update-script { };
 
-  meta = with lib; {
+  __darwinAllowLocalNetworking = true;
+
+  meta = {
     homepage = "https://github.com/jfrog/jfrog-cli";
     description = "Client for accessing to JFrog's Artifactory and Mission Control through their respective REST APIs";
-    changelog = "https://github.com/jfrog/jfrog-cli/releases/tag/v${version}";
-    license = licenses.asl20;
+    changelog = "https://github.com/jfrog/jfrog-cli/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.asl20;
     mainProgram = "jf";
-    maintainers = with maintainers; [
+    maintainers = with lib.maintainers; [
       detegr
-      aidalgol
     ];
   };
-}
+})

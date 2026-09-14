@@ -1,4 +1,4 @@
-{ lib }:
+{ _cuda, lib }:
 {
   /**
     Returns whether a capability should be built by default for a particular CUDA version.
@@ -114,16 +114,23 @@
     ```
   */
   allowUnfreeCudaPredicate =
-    package:
-    lib.all (
-      license:
-      license.free
-      || lib.elem license.shortName [
-        "CUDA EULA"
-        "cuDNN EULA"
-        "cuSPARSELt EULA"
-        "cuTENSOR EULA"
-        "NVidia OptiX EULA"
+    let
+      cudaLicenses = [
+        lib.licenses.nvidiaCuda
+        lib.licenses.nvidiaCudaRedist
       ]
-    ) (lib.toList package.meta.license);
+      ++ lib.attrValues _cuda.lib.licenses;
+      cudaLicenseNames = lib.map (license: license.shortName) cudaLicenses;
+    in
+    package:
+    # new compound licenses
+    if lib.isAttrs package.meta.license && lib.hasAttr "licenseType" package.meta.license then
+      lib.licenses.evaluateProperty (
+        license: (license.free or false) || lib.elem license cudaLicenses
+      ) true (package.meta.license or [ ])
+    else
+      # old license list
+      lib.all (
+        license: (license.free or false) || lib.elem (license.shortName or null) cudaLicenseNames
+      ) (lib.toList package.meta.license);
 }

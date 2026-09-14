@@ -7,16 +7,17 @@
 
 php.buildComposerProject2 (finalAttrs: {
   pname = "davis";
-  version = "5.0.2";
+  version = "5.4.4";
 
   src = fetchFromGitHub {
     owner = "tchapi";
     repo = "davis";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-Zl+6nrgspyg6P9gqYwah81Z6Mtni6nUlCp4gTjJWn9M=";
+    hash = "sha256-XGnBXJhAX1hsLOO/dujdf/EUBmaPmW7Kt5e23pabVdU=";
   };
 
-  vendorHash = "sha256-pCWM1kgk30Au9i8TflrmZXw/PJmo3tdW565BXwncsZU=";
+  composerNoPlugins = false;
+  vendorHash = "sha256-hGLGnF0670jDtZ5m5TH+4ewXMByvt8eL+WoCeATIvDU=";
 
   postInstall = ''
     chmod -R u+w $out/share

@@ -9,16 +9,16 @@
 }:
 buildGoModule (finalAttrs: {
   pname = "fluxcd-operator-mcp";
-  version = "0.21.0";
+  version = "0.58.1";
 
   src = fetchFromGitHub {
     owner = "controlplaneio-fluxcd";
-    repo = "fluxcd-operator";
+    repo = "flux-operator";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-SszWTuK3HVsyc669NThQn5VAVwD/7JQtKtqBJD6cTT0=";
+    hash = "sha256-XGjRP9JvEpuVNKcErTKmKi4TGBADpbI1DDXYDd0Bbb4=";
   };
 
-  vendorHash = "sha256-5uT/pcfXrinyJ1hXmQ+vmWNuyO33c6d5PAjm6kwOZmY=";
+  vendorHash = "sha256-9iDxoWnizmTQ4FqxjlGPQO8Au2FxIdcgggtP+3dTOaU=";
 
   ldflags = [
     "-s"
@@ -32,21 +32,19 @@ buildGoModule (finalAttrs: {
 
   nativeInstallCheckInputs = [ versionCheckHook ];
   versionCheckProgram = "${placeholder "out"}/bin/flux-operator-mcp";
-  versionCheckProgramArg = "--version";
   doInstallCheck = true;
 
   env.CGO_ENABLED = 0;
 
-  postInstall =
-    ''
-      mv $out/bin/mcp $out/bin/flux-operator-mcp
-    ''
-    + lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
-      for shell in bash fish zsh; do
-        installShellCompletion --cmd flux-operator-mcp \
-          --$shell <($out/bin/flux-operator-mcp completion $shell)
-      done
-    '';
+  postInstall = ''
+    mv $out/bin/mcp $out/bin/flux-operator-mcp
+  ''
+  + lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+    for shell in bash fish zsh; do
+      installShellCompletion --cmd flux-operator-mcp \
+        --$shell <($out/bin/flux-operator-mcp completion $shell)
+    done
+  '';
 
   passthru.updateScript = nix-update-script { };
 
@@ -63,6 +61,7 @@ buildGoModule (finalAttrs: {
     license = lib.licenses.agpl3Only;
     maintainers = with lib.maintainers; [
       mattfield
+      stealthybox
     ];
     mainProgram = "flux-operator-mcp";
   };

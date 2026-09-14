@@ -17,16 +17,16 @@
 
 buildGoModule (finalAttrs: {
   pname = "geteduroam";
-  version = "0.11";
+  version = "0.14";
 
   src = fetchFromGitHub {
     owner = "geteduroam";
     repo = "linux-app";
     tag = finalAttrs.version;
-    hash = "sha256-CbgQn6mf1125DYKBDId+BmFMcfdWNW2M4/iLoiELOAY=";
+    hash = "sha256-Zvyba8ma4a5WmV6rnfUKqQ8AsZlGGWrZsL8UZIWApTQ=";
   };
 
-  vendorHash = "sha256-b06wnqT88J7etNTFJ6nE9Uo0gOQOGvvs0vPNnJr6r4Q=";
+  vendorHash = "sha256-HYJ71pk1a8EaPycmbHmMnQeb42dt7M9NvK/1GYhZE0c=";
 
   subPackages = [
     "cmd/geteduroam-gui"
@@ -61,13 +61,13 @@ buildGoModule (finalAttrs: {
     versionCheckHook
   ];
   versionCheckProgram = "${placeholder "out"}/bin/geteduroam-gui";
-  versionCheckProgramArg = "--version";
   doInstallCheck = true;
 
   passthru = {
     libraryPath = symlinkJoin {
       name = "eduroam-gui-puregotk-lib";
       # based on https://github.com/jwijenbergh/puregotk/blob/bc1a52f44fd4c491947f7af85296c66173da17ba/internal/core/core.go#L41
+      # cat "$(nix-build . -A geteduroam.goModules)"/*/*/puregotk/v4/*/*.go | grep -E 'SetSharedLibraries\(.*\)' -o | cut -d'"' -f4 | sort -u
       paths = [
         cairo
         gdk-pixbuf

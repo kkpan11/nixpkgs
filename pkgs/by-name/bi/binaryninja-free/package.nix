@@ -1,30 +1,45 @@
 {
   autoPatchelfHook,
   copyDesktopItems,
+  curl,
   dbus,
   fetchurl,
   fontconfig,
   freetype,
   lib,
+  libdrm,
   libGLU,
   libxkbcommon,
   makeDesktopItem,
   stdenv,
   unzip,
   wayland,
-  xcbutilimage,
-  xcbutilkeysyms,
-  xcbutilrenderutil,
-  xcbutilwm,
+  libxcb-image,
+  libxcb-keysyms,
+  libxcb-render-util,
+  libxcb-wm,
 }:
-stdenv.mkDerivation rec {
-  pname = "binaryninja-free";
-  version = "5.0.7290";
+let
+  version = "6.0.10601";
 
-  src = fetchurl {
-    url = "https://web.archive.org/web/20250426133400/https://cdn.binary.ninja/installers/binaryninja_free_linux.zip";
-    hash = "sha256-Fzdv+454Ajj8IxmdcxvcDGePFsTmmyPpnfBXge4p8iU=";
+  sources = {
+    x86_64-linux = {
+      url = "https://github.com/Vector35/binaryninja-api/releases/download/stable/${version}/binaryninja_free_linux.zip";
+      hash = "sha256-PoucWGGr5umwTIa1+cStLchs7ep5ty17Cu4f3PfOkdY=";
+    };
+    aarch64-linux = {
+      url = "https://github.com/Vector35/binaryninja-api/releases/download/stable/${version}/binaryninja_free_linux-arm.zip";
+      hash = "sha256-G3gSWFa+Rh9zJMoA9QyH8XiIXsEK0YVXgHDtmR6X11o=";
+    };
   };
+in
+stdenv.mkDerivation (finalAttrs: {
+  pname = "binaryninja-free";
+  inherit version;
+
+  src = fetchurl (
+    sources.${stdenv.hostPlatform.system} or (throw "Unsupported system: ${stdenv.hostPlatform.system}")
+  );
 
   icon = fetchurl {
     url = "https://raw.githubusercontent.com/Vector35/binaryninja-api/448f40be71dffa86a6581c3696627ccc1bdf74f2/docs/img/logo.png";
@@ -53,17 +68,19 @@ stdenv.mkDerivation rec {
   ];
 
   buildInputs = [
+    curl
     dbus
     fontconfig
     freetype
+    libdrm
     libGLU
     libxkbcommon
     stdenv.cc.cc.lib
     wayland
-    xcbutilimage
-    xcbutilkeysyms
-    xcbutilrenderutil
-    xcbutilwm
+    libxcb-image
+    libxcb-keysyms
+    libxcb-render-util
+    libxcb-wm
   ];
 
   installPhase = ''
@@ -74,13 +91,15 @@ stdenv.mkDerivation rec {
     mkdir $out/bin
     ln -s $out/binaryninja $out/bin/binaryninja
 
-    install -Dm644 ${icon} $out/share/icons/hicolor/256x256/apps/binaryninja.png
+    install -Dm644 ${finalAttrs.icon} $out/share/icons/hicolor/256x256/apps/binaryninja.png
 
     runHook postInstall
   '';
 
   meta = {
-    changelog = "https://binary.ninja/changelog/#${lib.replaceStrings [ "." ] [ "-" ] version}";
+    changelog = "https://binary.ninja/changelog/#${
+      lib.replaceStrings [ "." ] [ "-" ] finalAttrs.version
+    }";
     description = "Interactive decompiler, disassembler, debugger";
     homepage = "https://binary.ninja/";
     license = {
@@ -89,7 +108,13 @@ stdenv.mkDerivation rec {
       free = false;
     };
     mainProgram = "binaryninja";
-    maintainers = with lib.maintainers; [ scoder12 ];
-    platforms = [ "x86_64-linux" ];
+    maintainers = with lib.maintainers; [
+      scoder12
+      timschumi
+    ];
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
   };
-}
+})

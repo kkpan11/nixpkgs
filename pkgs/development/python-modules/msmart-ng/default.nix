@@ -17,14 +17,14 @@
 
 buildPythonPackage rec {
   pname = "msmart-ng";
-  version = "2025.5.1";
+  version = "2026.8.0";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mill1000";
     repo = "midea-msmart";
     tag = version;
-    hash = "sha256-dZD93ZZiQLmWuMAR/nnYB7oGBBYr4YPEi+LdpSzweVc=";
+    hash = "sha256-UbRL42jQk3A8VYe/eLj3XNTFPhyVjBMzB/lTNs0tyRM=";
   };
 
   build-system = [
@@ -39,22 +39,18 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [ pytestCheckHook ];
 
-  disabledTestPaths = [
-    # network access
-    "msmart/tests/test_cloud.py"
-  ];
+  env.CI = true;
 
   pythonImportsCheck = [ "msmart" ];
 
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/mill1000/midea-msmart/releases/tag/${src.tag}";
     description = "Python library for local control of Midea (and associated brands) smart air conditioners";
     homepage = "https://github.com/mill1000/midea-msmart";
-    license = licenses.mit;
+    license = lib.licenses.mit;
     mainProgram = "msmart-ng";
-    maintainers = with maintainers; [
+    maintainers = with lib.maintainers; [
       hexa
-      emilylange
     ];
   };
 }

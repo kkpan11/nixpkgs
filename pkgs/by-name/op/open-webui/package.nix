@@ -5,17 +5,22 @@
   python3Packages,
   nixosTests,
   fetchurl,
-  ffmpeg-headless,
 }:
 let
   pname = "open-webui";
-  version = "0.6.13";
+  version = "0.11.3";
 
   src = fetchFromGitHub {
     owner = "open-webui";
     repo = "open-webui";
     tag = "v${version}";
-    hash = "sha256-teBGAo9YyFSBVXMElpw2zON5oCa3O8k+pf9pSNSW5gc=";
+    hash = "sha256-bnbH2oHDV2ntjOS+4SkICvuRgQi9UQrewJgmi3WFmRE=";
+  };
+
+  # we need datasets_3 for SpeechT5 embeddings
+  datasets = python3Packages.datasets_3;
+  colbert-ai = python3Packages.colbert-ai.override {
+    inherit datasets;
   };
 
   frontend = buildNpmPackage rec {
@@ -23,16 +28,16 @@ let
     inherit version src;
 
     # the backend for run-on-client-browser python execution
-    # must match lock file in open-webui
-    # TODO: should we automate this?
-    # TODO: with JQ? "jq -r '.packages["node_modules/pyodide"].version' package-lock.json"
-    pyodideVersion = "0.27.3";
+    # must match the version that is locked in package-lock.json
+    pyodideVersion = "314.0.3";
     pyodide = fetchurl {
-      hash = "sha256-SeK3RKqqxxLLf9DN5xXuPw6ZPblE6OX9VRXMzdrmTV4=";
+      hash = "sha256-oCgELZDbqedP377PNuqn1X6IvwrWGNnFBZ6xBAqnYSo=";
       url = "https://github.com/pyodide/pyodide/releases/download/${pyodideVersion}/pyodide-${pyodideVersion}.tar.bz2";
     };
 
-    npmDepsHash = "sha256-/olaKqd0ZBFKyfoyhuPsd1Gl7nC9pro2apiWLjPe07s=";
+    npmDepsHash = "sha256-QzS+m8bt/4j3uVI9ox4gHkgX2X4Kpj84+jHcr+WqKh8=";
+
+    npmFlags = [ "--force" ];
 
     # Disabling `pyodide:fetch` as it downloads packages during `buildPhase`
     # Until this is solved, running python packages from the browser will not work.
@@ -40,10 +45,6 @@ let
       substituteInPlace package.json \
         --replace-fail "npm run pyodide:fetch && vite build" "vite build"
     '';
-
-    propagatedBuildInputs = [
-      ffmpeg-headless
-    ];
 
     env.CYPRESS_INSTALL_BINARY = "0"; # disallow cypress from downloading binaries in sandbox
     env.ONNXRUNTIME_NODE_INSTALL_CUDA = "skip";
@@ -63,7 +64,7 @@ let
     '';
   };
 in
-python3Packages.buildPythonApplication rec {
+python3Packages.buildPythonApplication (finalAttrs: {
   inherit pname version src;
   pyproject = true;
 
@@ -79,19 +80,15 @@ python3Packages.buildPythonApplication rec {
 
   pythonRelaxDeps = true;
 
-  pythonRemoveDeps = [
-    "docker"
-    "pytest"
-    "pytest-docker"
-  ];
-
   dependencies =
     with python3Packages;
     [
       accelerate
       aiocache
+      aiodns
       aiofiles
       aiohttp
+      aiosqlite
       alembic
       anthropic
       apscheduler
@@ -106,98 +103,136 @@ python3Packages.buildPythonApplication rec {
       beautifulsoup4
       black
       boto3
+      brotli
+      brotlicffi
+      chardet
       chromadb
-      colbert-ai
+      cryptography
+      datasets
+      ddgs
       docx2txt
-      duckduckgo-search
       einops
-      elasticsearch
-      extract-msg
       fake-useragent
       fastapi
       faster-whisper
-      firecrawl-py
       fpdf2
       ftfy
-      gcp-storage-emulator
       google-api-python-client
       google-auth-httplib2
       google-auth-oauthlib
       google-cloud-storage
       google-genai
-      google-generativeai
       googleapis-common-protos
-      iso-639
+      hiredis
+      httpx
+      itsdangerous
+      joserfc
       langchain
+      langchain-classic
       langchain-community
-      langdetect
-      langfuse
+      langchain-text-splitters
       ldap3
       loguru
+      lxml
       markdown
-      moto
+      mcp
+      msoffcrypto-tool
       nltk
       onnxruntime
       openai
       opencv-python-headless
-      openpyxl
-      opensearch-py
       opentelemetry-api
-      opentelemetry-sdk
       opentelemetry-exporter-otlp
       opentelemetry-instrumentation
+      opentelemetry-instrumentation-aiohttp-client
       opentelemetry-instrumentation-fastapi
-      opentelemetry-instrumentation-sqlalchemy
+      opentelemetry-instrumentation-httpx
+      opentelemetry-instrumentation-logging
       opentelemetry-instrumentation-redis
       opentelemetry-instrumentation-requests
-      opentelemetry-instrumentation-logging
-      opentelemetry-instrumentation-httpx
-      opentelemetry-instrumentation-aiohttp-client
+      opentelemetry-instrumentation-sqlalchemy
+      opentelemetry-sdk
+      openpyxl
+      opensearch-py
+      orjson
       pandas
-      passlib
-      peewee
-      peewee-migrate
-      pgvector
       pillow
-      pinecone-client
-      playwright
       psutil
-      psycopg2-binary
+      psycopg
+      pyarrow
+      pycrdt
+      pydantic
       pydub
       pyjwt
       pymdown-extensions
-      pymilvus
-      pymongo
       pymysql
       pypandoc
       pypdf
+      python-docx
       python-dotenv
-      python-jose
+      python-mimeparse
       python-multipart
       python-pptx
       python-socketio
       pytube
+      pytz
       pyxlsb
-      qdrant-client
       rank-bm25
-      rapidocr-onnxruntime
+      rapidocr
       redis
+      regex
       requests
       restrictedpython
       sentence-transformers
       sentencepiece
       soundfile
+      sqlalchemy
       starlette-compress
-      tencentcloud-sdk-python
+      starsessions
       tiktoken
       transformers
-      unstructured
       uvicorn
       validators
       xlrd
       youtube-transcript-api
     ]
-    ++ moto.optional-dependencies.s3;
+    ++ (with httpx.optional-dependencies; brotli ++ cli ++ http2 ++ socks ++ zstd)
+    ++ uvicorn.optional-dependencies.standard
+    ++ psycopg.optional-dependencies.c
+    ++ pyjwt.optional-dependencies.crypto
+    ++ sqlalchemy.optional-dependencies.asyncio
+    ++ starsessions.optional-dependencies.redis;
+
+  optional-dependencies = with python3Packages; {
+    postgres = [
+      pgvector
+      psycopg2-binary
+    ];
+
+    mariadb = [
+      mariadb
+    ];
+
+    unstructured = [
+      unstructured
+    ];
+
+    all = [
+      azure-search-documents
+      colbert-ai
+      elasticsearch
+      oracledb
+      pinecone
+      playwright
+      pymilvus
+      pymongo
+      qdrant-client
+      weaviate-client
+    ]
+    ++ finalAttrs.passthru.optional-dependencies.mariadb
+    ++ finalAttrs.passthru.optional-dependencies.postgres
+    ++ finalAttrs.passthru.optional-dependencies.unstructured;
+  };
 
   pythonImportsCheck = [ "open_webui" ];
 
@@ -234,8 +269,8 @@ python3Packages.buildPythonApplication rec {
     '';
     mainProgram = "open-webui";
     maintainers = with lib.maintainers; [
-      drupol
       shivaraj-bh
+      codgician
     ];
   };
-}
+})

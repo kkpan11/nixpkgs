@@ -3,33 +3,43 @@
   buildGoModule,
   fetchFromGitHub,
   testers,
-  replaceVars,
   spicetify-cli,
+  nodejs,
+  esbuild,
 }:
 buildGoModule (finalAttrs: {
   pname = "spicetify-cli";
-  version = "2.40.9";
+  version = "2.45.0";
 
   src = fetchFromGitHub {
     owner = "spicetify";
     repo = "cli";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-x3M6AbFiVCk1LM3k+D+NAnOclu90LAuBgYI/cBLpH3A=";
+    hash = "sha256-VrgDn3A2g15Igkqo7FTFJmxKnK/8XJSkFquP8ey7wRk=";
   };
 
-  vendorHash = "sha256-901njlGcAxr12F9w6yQ+ESsptlwsZsMvKPUmlHxehmA=";
+  vendorHash = "sha256-nrUaocs+so35MDxC6TkRSakYKWmhoysrvhE6fXRvYco=";
+
+  postPatch = ''
+    substituteInPlace src/preprocess/preprocess.go \
+      --replace-fail 'version != "Dev"' 'version != "${finalAttrs.version}"'
+  '';
 
   ldflags = [
     "-s -w"
     "-X 'main.version=${finalAttrs.version}'"
   ];
 
-  patches = [
-    # Stops spicetify from attempting to fetch a newer css-map.json
-    (replaceVars ./version.patch {
-      inherit (finalAttrs) version;
-    })
+  nativeBuildInputs = [
+    nodejs
+    esbuild
   ];
+
+  postBuild = ''
+    esbuild ./src/jsHelper/spicetifyWrapper/index.js \
+      --bundle --minify --target=chrome108 --format=iife \
+      --outfile=spicetifyWrapper.js
+  '';
 
   postInstall =
     /*
@@ -42,7 +52,9 @@ buildGoModule (finalAttrs: {
       mkdir -p $out/share/spicetify
 
       cp -r $src/jsHelper $out/share/spicetify/jsHelper
+      chmod -R u+w $out/share/spicetify/jsHelper
       cp $src/css-map.json $out/share/spicetify/css-map.json
+      cp spicetifyWrapper.js $out/share/spicetify/jsHelper/spicetifyWrapper.js
 
       mv $out/bin/cli $out/share/spicetify/spicetify
 

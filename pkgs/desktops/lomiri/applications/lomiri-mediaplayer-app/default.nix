@@ -10,6 +10,7 @@
   lomiri-action-api,
   lomiri-content-hub,
   lomiri-ui-toolkit,
+  mesa,
   pkg-config,
   qtbase,
   qtdeclarative,
@@ -22,13 +23,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "lomiri-mediaplayer-app";
-  version = "1.1.1";
+  version = "1.1.2";
 
   src = fetchFromGitLab {
     owner = "ubports";
     repo = "development/core/lomiri-mediaplayer-app";
-    tag = "${finalAttrs.version}";
-    hash = "sha256-A1tAXQXDwVZ3ILFcJKCtbOm1iNxPFOXQIS6p7fPbqwM=";
+    tag = finalAttrs.version;
+    hash = "sha256-1RamS4cOIxi1vGy0tldMYtgbtJ86r2K54DTOJqKMLuE=";
   };
 
   postPatch = ''
@@ -49,26 +50,26 @@ stdenv.mkDerivation (finalAttrs: {
     wrapQtAppsHook
   ];
 
-  buildInputs =
-    [
-      qtbase
-      qtmultimedia
+  buildInputs = [
+    qtbase
+    qtmultimedia
 
-      # QML
-      lomiri-action-api
-      lomiri-content-hub
-      lomiri-ui-toolkit
-      qtxmlpatterns
-    ]
-    # QtMultimedia playback support
-    ++ (with gst_all_1; [
-      gstreamer
-      gst-plugins-base
-      gst-plugins-good
-      gst-plugins-bad
-    ]);
+    # QML
+    lomiri-action-api
+    lomiri-content-hub
+    lomiri-ui-toolkit
+    qtxmlpatterns
+  ]
+  # QtMultimedia playback support
+  ++ (with gst_all_1; [
+    gstreamer
+    gst-plugins-base
+    gst-plugins-good
+    gst-plugins-bad
+  ]);
 
   nativeCheckInputs = [
+    mesa.llvmpipeHook # ShapeMaterial needs an OpenGL context: https://gitlab.com/ubports/development/core/lomiri-ui-toolkit/-/issues/35
     qtdeclarative # qmltestrunner
     xvfb-run
   ];
@@ -79,8 +80,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   cmakeFlags = [ (lib.cmakeBool "ENABLE_AUTOPILOT" false) ];
 
-  # Only test segfaults in Nix sandbox, see LSS for details
-  doCheck = false;
+  doCheck = stdenv.buildPlatform.canExecute stdenv.hostPlatform;
 
   preCheck =
     let
@@ -117,9 +117,9 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = {
     description = "Media Player application for Ubuntu Touch devices";
-    homepage = "https://gitlab.com/ubports/development/apps/lomiri-mediaplayer-app";
-    changelog = "https://gitlab.com/ubports/development/apps/lomiri-mediaplayer-app/-/blob/${
-      if (!builtins.isNull finalAttrs.src.tag) then finalAttrs.src.tag else finalAttrs.src.rev
+    homepage = "https://gitlab.com/ubports/development/core/lomiri-mediaplayer-app";
+    changelog = "https://gitlab.com/ubports/development/core/lomiri-mediaplayer-app/-/blob/${
+      if (!isNull finalAttrs.src.tag) then finalAttrs.src.tag else finalAttrs.src.rev
     }/ChangeLog";
     license = with lib.licenses; [
       gpl3Only

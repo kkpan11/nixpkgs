@@ -9,19 +9,19 @@
 let
   generator = pkgsBuildBuild.buildGoModule rec {
     pname = "v2ray-domain-list-community";
-    version = "20250526033544";
+    version = "20260908094002";
     src = fetchFromGitHub {
       owner = "v2fly";
       repo = "domain-list-community";
       rev = version;
-      hash = "sha256-XA6kB8mwnwZwioviIlKbYr40pJ1ndOXecjMToE9mAYE=";
+      hash = "sha256-+TuBDtFAY9AGiP6hSFw0To+jseB2QTbzDHkeGk9wNUc=";
     };
-    vendorHash = "sha256-NLh14rXRci4hgDkBJVJDIDvobndB7KYRKAX7UjyqSsg=";
-    meta = with lib; {
-      description = "community managed domain list";
+    vendorHash = "sha256-GwZTwdgAMGgsrpCzrqbaRjZEeDUPSHRwXHDaKDCu3Fw=";
+    meta = {
+      description = "Community managed domain list";
       homepage = "https://github.com/v2fly/domain-list-community";
-      license = licenses.mit;
-      maintainers = with maintainers; [ nickcao ];
+      license = lib.licenses.mit;
+      maintainers = with lib.maintainers; [ nickcao ];
     };
   };
 in
@@ -35,11 +35,13 @@ stdenv.mkDerivation {
   buildPhase = ''
     runHook preBuild
     ${generator}/bin/domain-list-community -datapath $src/data
+    ${generator}/bin/datdump --inputdata=dlc.dat --exportlists=_all_
     runHook postBuild
   '';
   installPhase = ''
     runHook preInstall
-    install -Dm644 dlc.dat $out/share/v2ray/geosite.dat
+    install -Dm644 dlc.dat           $out/share/v2ray/geosite.dat
+    install -Dm644 dlc.dat_plain.yml $out/share/v2ray/geosite.dat_plain.yml
     runHook postInstall
   '';
   passthru = {

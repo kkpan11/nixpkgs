@@ -1,8 +1,10 @@
 {
   lib,
   stdenv,
-  buildNpmPackage,
   fetchFromGitHub,
+  fetchPnpmDeps,
+  pnpmConfigHook,
+  pnpm_11,
   python3,
   nodejs,
   node-gyp,
@@ -10,11 +12,12 @@
   nixosTests,
   immich-machine-learning,
   # build-time deps
-  glib,
   pkg-config,
   makeWrapper,
+  binaryen,
   curl,
   cacert,
+  extism-js,
   unzip,
   # runtime deps
   cairo,
@@ -32,72 +35,31 @@
   pixman,
   vips,
   buildPackages,
-  sourcesJSON ? ./sources.json,
 }:
 let
-  buildNpmPackage' = buildNpmPackage.override { inherit nodejs; };
-  sources = lib.importJSON sourcesJSON;
-  inherit (sources) version;
+  pnpm = pnpm_11;
 
-  esbuild_0_23 = buildPackages.esbuild.override {
+  esbuild' = buildPackages.esbuild.override {
     buildGoModule =
       args:
       buildPackages.buildGoModule (
         args
         // rec {
-          version = "0.23.0";
+          version = "0.28.2";
           src = fetchFromGitHub {
             owner = "evanw";
             repo = "esbuild";
             tag = "v${version}";
-            hash = "sha256-AH4Y5ELPicAdJZY5CBf2byOxTzOyQFRh4XoqRUQiAQw=";
+            hash = "sha256-I1u+9U5Oj/KzxSjCxwyitwSuDKimatkbC3R2OtaUsfM=";
           };
           vendorHash = "sha256-+BfxCyg0KkDQpHt/wycy/8CTG6YBA/VJvJFhhzUnSiQ=";
         }
       );
   };
-
-  esbuild_0_25 = buildPackages.esbuild.override {
-    buildGoModule =
-      args:
-      buildPackages.buildGoModule (
-        args
-        // rec {
-          version = "0.25.2";
-          src = fetchFromGitHub {
-            owner = "evanw";
-            repo = "esbuild";
-            tag = "v${version}";
-            hash = "sha256-aDxheDMeQYqCT9XO3In6RbmzmXVchn+bjgf3nL3VE4I=";
-          };
-          vendorHash = "sha256-+BfxCyg0KkDQpHt/wycy/8CTG6YBA/VJvJFhhzUnSiQ=";
-        }
-      );
-  };
-
-  # Immich server does not actually need esbuild, but react-email and vite do.
-  # As esbuild doesn't support passing multiple binaries, we use a custom
-  # "shim", that picks the right version depending on the working directory.
-  # The correct version can be looked up in package-lock.json
-  # TODO: There are numerous other env vars this *could* be based on.
-  esbuildShim = buildPackages.writeShellScriptBin "esbuild" ''
-    echo "nixpkgs: esbuild shim for '$PWD'" >&2
-    case "$PWD" in
-      "/build/server/node_modules/esbuild")
-        exec ${lib.getExe esbuild_0_23} "$@"
-      ;;
-      "/build/server/node_modules/vite/node_modules/esbuild")
-        exec ${lib.getExe esbuild_0_25} "$@"
-        exit 0
-      ;;
-    esac
-    echo "nixpkgs: Couldn't resolve esbuild version for '$PWD'" >&2
-    exit 1
-  '';
 
   buildLock = {
     sources =
-      builtins.map
+      map
         (p: {
           name = p.pname;
           inherit (p) version;
@@ -115,14 +77,14 @@ let
   # The geodata website is not versioned, so we use the internet archive
   geodata =
     let
-      inherit (sources.components.geonames) timestamp;
+      timestamp = "20260911002105";
       date =
         "${lib.substring 0 4 timestamp}-${lib.substring 4 2 timestamp}-${lib.substring 6 2 timestamp}T"
         + "${lib.substring 8 2 timestamp}:${lib.substring 10 2 timestamp}:${lib.substring 12 2 timestamp}Z";
     in
     runCommand "immich-geodata"
       {
-        outputHash = sources.components.geonames.hash;
+        outputHash = "sha256-zxMbIEFF5MA2qkAbXs4sD4EQFWfCYt8t3AaC0m0LtEY=";
         outputHashMode = "recursive";
         nativeBuildInputs = [
           cacert
@@ -144,110 +106,39 @@ let
         unzip ./cities500.zip -d $out/
         echo "${date}" > $out/geodata-date.txt
       '';
+in
+stdenv.mkDerivation (finalAttrs: {
+  pname = "immich";
+  version = "3.2.0";
 
   src = fetchFromGitHub {
     owner = "immich-app";
     repo = "immich";
-    tag = "v${version}";
-    inherit (sources) hash;
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-1gaQ6f9Ja5FSis3wKyDUQprbcgs6sFtxNTwgihuxKL0=";
   };
 
-  openapi = buildNpmPackage' {
-    pname = "immich-openapi-sdk";
-    inherit version;
-    src = "${src}/open-api/typescript-sdk";
-    inherit (sources.components."open-api/typescript-sdk") npmDepsHash;
-
-    installPhase = ''
-      runHook preInstall
-
-      npm config delete cache
-      npm prune --omit=dev --omit=optional
-
-      mkdir -p $out
-      mv package.json package-lock.json node_modules build $out/
-
-      runHook postInstall
-    '';
+  pnpmDeps = fetchPnpmDeps {
+    inherit (finalAttrs) pname version src;
+    inherit pnpm;
+    fetcherVersion = 4;
+    hash = "sha256-N6eaRcJxik1wzGE1H/LnKR1JUcSc8iswPFkIGymOKVA=";
   };
 
-  web = buildNpmPackage' {
-    pname = "immich-web";
-    inherit version src;
-    sourceRoot = "${src.name}/web";
-    inherit (sources.components.web) npmDepsHash;
-
-    # prePatch is needed because npmConfigHook is a postPatch
-    prePatch = ''
-      # some part of the build wants to use un-prefixed binaries. let them.
-      mkdir -p $TMP/bin
-      ln -s "$(type -p ${stdenv.cc.targetPrefix}pkg-config)" $TMP/bin/pkg-config || true
-      ln -s "$(type -p ${stdenv.cc.targetPrefix}c++filt)" $TMP/bin/c++filt || true
-      ln -s "$(type -p ${stdenv.cc.targetPrefix}readelf)" $TMP/bin/readelf || true
-      export PATH="$TMP/bin:$PATH"
-    '';
-
-    preBuild = ''
-      rm node_modules/@immich/sdk
-      ln -s ${openapi} node_modules/@immich/sdk
-    '';
-
-    env.npm_config_build_from_source = "true";
-
-    nativeBuildInputs = [
-      pkg-config
-    ];
-
-    buildInputs = [
-      # https://github.com/Automattic/node-canvas/blob/master/Readme.md#compiling
-      cairo
-      giflib
-      libjpeg
-      libpng
-      librsvg
-      pango
-      pixman
-    ];
-
-    installPhase = ''
-      runHook preInstall
-
-      cp -r build $out
-
-      runHook postInstall
-    '';
-  };
-
-  vips' = vips.overrideAttrs (prev: {
-    mesonFlags = prev.mesonFlags ++ [ "-Dtiff=disabled" ];
-  });
-in
-buildNpmPackage' {
-  pname = "immich";
-  inherit version;
-  src = "${src}/server";
-  inherit (sources.components.server) npmDepsHash;
-
-  # prePatch is needed because npmConfigHook is a postPatch
-  prePatch = ''
-    # pg_dumpall fails without database root access
-    # see https://github.com/immich-app/immich/issues/13971
-    substituteInPlace src/services/backup.service.ts \
-      --replace-fail '`/usr/lib/postgresql/''${databaseMajorVersion}/bin/pg_dumpall`' '`pg_dump`'
-
-    # some part of the build wants to use un-prefixed binaries. let them.
-    mkdir -p $TMP/bin
-    ln -s "$(type -p ${stdenv.cc.targetPrefix}pkg-config)" $TMP/bin/pkg-config || true
-    ln -s "$(type -p ${stdenv.cc.targetPrefix}c++filt)" $TMP/bin/c++filt || true
-    ln -s "$(type -p ${stdenv.cc.targetPrefix}readelf)" $TMP/bin/readelf || true
-    export PATH="$TMP/bin:$PATH"
+  postPatch = ''
+    substituteInPlace server/src/services/database-backup.service.ts \
+      --replace-fail '`/usr/lib/postgresql/''${databaseMajorVersion}/bin/''${bin}`' '`''${bin}`'
   '';
 
   nativeBuildInputs = [
+    binaryen
+    extism-js
+    nodejs
     pkg-config
+    pnpmConfigHook
+    pnpm
     python3
     makeWrapper
-    glib
     node-gyp # for building node_modules/sharp from source
   ];
 
@@ -256,68 +147,97 @@ buildNpmPackage' {
     imagemagick
     libraw
     libheif
-    vips' # Required for sharp
+    # https://github.com/Automattic/node-canvas/blob/master/Readme.md#compiling
+    cairo
+    giflib
+    libjpeg
+    libpng
+    librsvg
+    pango
+    pixman
+    # Required for sharp
+    vips
   ];
 
-  # Required because vips tries to write to the cache dir
-  makeCacheWritable = true;
-
   env.SHARP_FORCE_GLOBAL_LIBVIPS = 1;
-  env.ESBUILD_BINARY_PATH = lib.getExe esbuildShim;
+  env.ESBUILD_BINARY_PATH = lib.getExe esbuild';
+  # fix for node-gyp, see https://github.com/nodejs/node-gyp/issues/1191#issuecomment-301243919
+  env.npm_config_nodedir = nodejs;
 
-  preBuild = ''
+  buildPhase = ''
+    runHook preBuild
+
     # If exiftool-vendored.pl isn't found, exiftool is searched for on the PATH
-    rm -r node_modules/exiftool-vendored.*
+    rm node_modules/.pnpm/node_modules/exiftool-vendored.pl
+
+    pnpm --filter immich... --filter immich-web... --filter @immich/plugin-core... build
+
+    runHook postBuild
   '';
 
   installPhase = ''
     runHook preInstall
 
-    npm config delete cache
-    npm prune --omit=dev
+    local -r packageOut="$out/lib/node_modules/immich"
+
+    # install node_modules and built files in $out
+    # upstream uses pnpm deploy to build their docker images
+    pnpm --filter immich deploy --prod --no-optional "$packageOut"
+
+    # build sharp from source
+    pnpm --dir "$packageOut/node_modules/sharp" exec npm run build
 
     # remove build artifacts that bloat the closure
-    rm -r node_modules/**/{*.target.mk,binding.Makefile,config.gypi,Makefile,Release/.deps}
+    find "$packageOut/node_modules" \( \
+      -name config.gypi \
+      -o -name .deps \
+      -o -name '*Makefile' \
+      -o -name '*.target.mk' \
+    \) -exec rm -r {} +
 
-    mkdir -p $out/build
-    mv package.json package-lock.json node_modules dist resources $out/
-    ln -s ${web} $out/build/www
-    ln -s ${geodata} $out/build/geodata
+    mkdir -p "$packageOut/build/plugins/immich-plugin-core"
+    cp -r packages/plugin-core/{dist,manifest.json} "$packageOut/build/plugins/immich-plugin-core/"
+    cp -r web/build "$packageOut/build/www"
+    ln -s '${geodata}' "$packageOut/build/geodata"
 
-    echo '${builtins.toJSON buildLock}' > $out/build/build-lock.json
+    echo '${builtins.toJSON buildLock}' > "$packageOut/build/build-lock.json"
 
-    makeWrapper ${lib.getExe nodejs} $out/bin/admin-cli --add-flags $out/dist/main --add-flags cli
-    makeWrapper ${lib.getExe nodejs} $out/bin/server --add-flags $out/dist/main --chdir $out \
-      --set IMMICH_BUILD_DATA $out/build --set NODE_ENV production \
-      --suffix PATH : "${
+    makeWrapper '${lib.getExe nodejs}' "$out/bin/immich-admin" \
+      --add-flags "$packageOut/dist/main" \
+      --add-flags immich-admin
+    makeWrapper '${lib.getExe nodejs}' "$out/bin/server" \
+      --add-flags "$packageOut/dist/main" \
+      --chdir "$packageOut" \
+      --set IMMICH_BUILD_DATA "$packageOut/build" \
+      --set NODE_ENV production \
+      --suffix PATH : '${
         lib.makeBinPath [
           exiftool
           jellyfin-ffmpeg
           perl # exiftool-vendored checks for Perl even if exiftool comes from $PATH
         ]
-      }"
+      }'
 
     runHook postInstall
   '';
 
   passthru = {
     tests = {
-      inherit (nixosTests) immich;
+      inherit (nixosTests) immich immich-vectorchord-reindex;
     };
 
-    machine-learning = immich-machine-learning;
+    machine-learning = immich-machine-learning.override {
+      immich = finalAttrs.finalPackage;
+    };
 
     inherit
-      src
-      sources
-      web
       geodata
+      pnpm
       ;
-    updateScript = ./update.sh;
   };
 
   meta = {
-    changelog = "https://github.com/immich-app/immich/releases/tag/${src.tag}";
+    changelog = "https://github.com/immich-app/immich/releases/tag/${finalAttrs.src.tag}";
     description = "Self-hosted photo and video backup solution";
     homepage = "https://immich.app/";
     license = with lib.licenses; [
@@ -325,6 +245,7 @@ buildNpmPackage' {
       cc-by-40 # geonames
     ];
     maintainers = with lib.maintainers; [
+      diogotcorreia
       dotlambda
       jvanbruegge
       Scrumplex
@@ -333,4 +254,4 @@ buildNpmPackage' {
     platforms = lib.platforms.linux ++ lib.platforms.freebsd;
     mainProgram = "server";
   };
-}
+})

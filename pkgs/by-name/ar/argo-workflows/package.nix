@@ -7,47 +7,18 @@
   pkgsBuildBuild,
 }:
 
-let
-  # Argo can package a static server in the CLI using the `staticfiles` go module.
-  # We build the CLI without the static server for simplicity, but the tool is still required for
-  # compilation to succeed.
-  # See: https://github.com/argoproj/argo/blob/d7690e32faf2ac5842468831daf1443283703c25/Makefile#L117
-  staticfiles = pkgsBuildBuild.buildGoModule {
-    name = "staticfiles";
-
-    src = fetchFromGitHub {
-      owner = "bouk";
-      repo = "staticfiles";
-      rev = "827d7f6389cd410d0aa3f3d472a4838557bf53dd";
-      hash = "sha256-wchj5KjhTmhc4XVW0sRFCcyx5W9am8TNAIhej3WFWXU=";
-    };
-
-    vendorHash = null;
-
-    excludedPackages = [ "./example" ];
-
-    preBuild = ''
-      cp ${./staticfiles.go.mod} go.mod
-    '';
-
-    ldflags = [
-      "-s"
-      "-w"
-    ];
-  };
-in
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "argo-workflows";
-  version = "3.6.7";
+  version = "4.0.5";
 
   src = fetchFromGitHub {
     owner = "argoproj";
-    repo = "argo";
-    tag = "v${version}";
-    hash = "sha256-LV6Pg+RFVFNwh6rmlHgqwcu99tse9wW3nBHpj4zYdrU=";
+    repo = "argo-workflows";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-UmkUFuYFeuyqgdf/ByZkkulkVRregp53bvcyyEKgZQo=";
   };
 
-  vendorHash = "sha256-jYVwIHqArsF3pHKnCuyO2OMhEhutAsiq91iBh+KqerA=";
+  vendorHash = "sha256-UTBM1zd+HrC5bUadn0VSsO52HhqdPGzZwipQv7WOrNU=";
 
   doCheck = false;
 
@@ -61,40 +32,45 @@ buildGoModule rec {
 
   preBuild = ''
     mkdir -p ui/dist/app
+    # This build target could act as a web server, but this is just
+    # acting as a CLI.
+    # Provide a dummy UI file to allow the build to embed something
+    # without actually building the web content
     echo "Built without static files" > ui/dist/app/index.html
-
-    ${staticfiles}/bin/staticfiles -o server/static/files.go ui/dist/app
   '';
 
   ldflags = [
     "-s"
     "-w"
-    "-X github.com/argoproj/argo-workflows/v3.buildDate=unknown"
-    "-X github.com/argoproj/argo-workflows/v3.gitCommit=${src.rev}"
-    "-X github.com/argoproj/argo-workflows/v3.gitTag=${src.rev}"
-    "-X github.com/argoproj/argo-workflows/v3.gitTreeState=clean"
-    "-X github.com/argoproj/argo-workflows/v3.version=${version}"
+    "-X github.com/argoproj/argo-workflows/v4.buildDate=unknown"
+    "-X github.com/argoproj/argo-workflows/v4.gitCommit=${finalAttrs.src.rev}"
+    "-X github.com/argoproj/argo-workflows/v4.gitTag=${finalAttrs.src.rev}"
+    "-X github.com/argoproj/argo-workflows/v4.gitTreeState=clean"
+    "-X github.com/argoproj/argo-workflows/v4.version=${finalAttrs.version}"
   ];
 
   postInstall = ''
-    for shell in bash zsh; do
+    for shell in bash zsh fish; do
       ${
         if (stdenv.buildPlatform == stdenv.hostPlatform) then
           "$out/bin/argo"
         else
-          "${pkgsBuildBuild.argo}/bin/argo"
+          "${pkgsBuildBuild.argo-workflows}/bin/argo"
       } completion $shell > argo.$shell
       installShellCompletion argo.$shell
     done
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Container native workflow engine for Kubernetes";
     mainProgram = "argo";
-    homepage = "https://github.com/argoproj/argo";
-    changelog = "https://github.com/argoproj/argo-workflows/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ groodt ];
-    platforms = platforms.unix;
+    homepage = "https://github.com/argoproj/argo-workflows";
+    changelog = "https://github.com/argoproj/argo-workflows/blob/v${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      groodt
+      joibel
+    ];
+    platforms = lib.platforms.unix;
   };
-}
+})

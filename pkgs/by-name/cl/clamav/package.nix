@@ -14,7 +14,8 @@
   libmilter,
   pcre2,
   libmspack,
-  systemd,
+  systemdLibs,
+  systemdSupport ? stdenv.hostPlatform.isLinux,
   json_c,
   check,
   rustc,
@@ -24,19 +25,18 @@
   python3,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "clamav";
-  version = "1.4.2";
+  version = "1.5.4";
 
   src = fetchurl {
-    url = "https://www.clamav.net/downloads/production/${pname}-${version}.tar.gz";
-    hash = "sha256-jJL4reKo8snWaI0dY+5X9sr5ZddNzgbQlxxnCcjmwEw=";
+    url = "https://www.clamav.net/downloads/production/clamav-${finalAttrs.version}.tar.gz";
+    hash = "sha256-GvEReiKPG1vH+pGg2rw3hIqZ59JRiOm+gEMzLOch39M=";
   };
 
   patches = [
-    # Flaky test, remove this when https://github.com/Cisco-Talos/clamav/issues/343 is fixed
-    ./remove-freshclam-test.patch
-    ./sample-cofiguration-file-install-location.patch
+    ./sample-configuration-file-install-location.patch
+    ./use-non-existent-file-with-proper-permissions.patch
   ];
 
   enableParallelBuilding = true;
@@ -62,28 +62,32 @@ stdenv.mkDerivation rec {
     libmspack
     json_c
     check
-  ] ++ lib.optional stdenv.hostPlatform.isLinux systemd;
+  ]
+  ++ lib.optional systemdSupport systemdLibs;
 
   cmakeFlags = [
-    "-DSYSTEMD_UNIT_DIR=${placeholder "out"}/lib/systemd"
     "-DAPP_CONFIG_DIRECTORY=/etc/clamav"
+    "-DCVD_CERTS_DIRECTORY=${placeholder "out"}/share/clamav/certs"
+  ]
+  ++ lib.optionals systemdSupport [
+    "-DSYSTEMD_UNIT_DIR=${placeholder "out"}/lib/systemd"
   ];
 
-  doCheck = true;
+  # Fails on darwin with sandboxing
+  doCheck = !(stdenv.hostPlatform.isDarwin);
 
   checkInputs = [
     python3.pkgs.pytest
   ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://www.clamav.net";
     description = "Antivirus engine designed for detecting Trojans, viruses, malware and other malicious threats";
-    license = licenses.gpl2Only;
-    maintainers = with maintainers; [
+    license = lib.licenses.gpl2Only;
+    maintainers = with lib.maintainers; [
       robberer
       qknight
-      globin
     ];
-    platforms = platforms.unix;
+    platforms = lib.platforms.unix;
   };
-}
+})

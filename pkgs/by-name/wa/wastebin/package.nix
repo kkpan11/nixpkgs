@@ -8,19 +8,18 @@
   nixosTests,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "wastebin";
-  version = "3.1.0";
+  version = "3.7.2";
 
   src = fetchFromGitHub {
     owner = "matze";
     repo = "wastebin";
-    rev = version;
-    hash = "sha256-7+Ufin68gMQtKv8SC8Gmn0Ra2qpumsKYgpURTkVqzt8=";
+    rev = finalAttrs.version;
+    hash = "sha256-IzrwFiLJfvFKHdYaDmaYYwdBUlQed9WEy/7OBvlAUTQ=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-j9Wpo3N1kwCvjDEqmn87rGSYFVw1ZGkSps72zVpXNls=";
+  cargoHash = "sha256-tq2Hc5CAp5Cp6AYS/NGb0HEtvm+lH8qak+M8toksDF4=";
 
   nativeBuildInputs = [
     pkg-config
@@ -39,15 +38,15 @@ rustPlatform.buildRustPackage rec {
     inherit (nixosTests) wastebin;
   };
 
-  meta = with lib; {
-    description = "Wastebin is a pastebin";
+  meta = {
+    description = "Pastebin service";
     homepage = "https://github.com/matze/wastebin";
-    changelog = "https://github.com/matze/wastebin/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [
+    changelog = "https://github.com/matze/wastebin/blob/${finalAttrs.src.rev}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
       pinpox
       matthiasbeyer
     ];
     mainProgram = "wastebin";
   };
-}
+})

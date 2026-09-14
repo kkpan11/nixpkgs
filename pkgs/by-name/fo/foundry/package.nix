@@ -5,31 +5,38 @@
   fetchFromGitHub,
   libusb1,
   nix-update-script,
+  perl,
   pkg-config,
   rustPlatform,
-  solc,
   versionCheckHook,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "foundry";
-  version = "1.2.2";
+  version = "1.8.1";
+
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "foundry-rs";
     repo = "foundry";
-    tag = "v${version}";
-    hash = "sha256-XZHlBTFmdt4RL/JNGbHDI9XLwDRHoEr3KNCTq5oKexQ=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-klIOiuK9rpYtL56RMWum71XH6XlZQDWHSg347SHMcQM=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-qa8mnLqu1X8Rs5ouxXgAiPxDwuXqSY896SCQl8Me5cU=";
+  cargoHash = "sha256-u3QuzSnmj/ppOsz737jN0VtbiouCn2XQWAylH0z6OlQ=";
+
+  strictDeps = true;
 
   nativeBuildInputs = [
+    # `sha3-asm`'s build script runs cryptogams perl scripts to generate
+    # Keccak assembly, so perl must be available at build time.
+    perl
     pkg-config
-  ] ++ lib.optionals stdenv.hostPlatform.isDarwin [ darwin.DarwinTools ];
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [ darwin.DarwinTools ];
 
-  buildInputs = [ solc ] ++ lib.optionals stdenv.hostPlatform.isDarwin [ libusb1 ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isDarwin [ libusb1 ];
 
   # Tests are run upstream, and many perform I/O
   # incompatible with the nix build sandbox.
@@ -39,12 +46,18 @@ rustPlatform.buildRustPackage rec {
     versionCheckHook
   ];
   versionCheckProgram = "${placeholder "out"}/bin/forge";
-  versionCheckProgramArg = "--version";
   doInstallCheck = true;
 
   passthru.updateScript = nix-update-script { };
 
   env = {
+    # The build script in `crates/common/build.rs` uses vergen to embed
+    # `git describe` / SHA output, but the GitHub source tarball has no `.git`
+    # directory. Pre-set the values so vergen reuses them instead of shelling
+    # out to git.
+    VERGEN_GIT_SHA = finalAttrs.src.rev;
+    VERGEN_GIT_DESCRIBE = "v${finalAttrs.version}";
+
     SVM_RELEASES_LIST_JSON =
       if stdenv.hostPlatform.isDarwin then
         # Confusingly, these are universal binaries, not amd64.
@@ -56,16 +69,18 @@ rustPlatform.buildRustPackage rec {
 
   meta = {
     homepage = "https://github.com/foundry-rs/foundry";
-    description = "Portable, modular toolkit for Ethereum application development written in Rust.";
-    changelog = "https://github.com/foundry-rs/foundry/blob/v${version}/CHANGELOG.md";
+    description = "Portable, modular toolkit for Ethereum application development written in Rust";
+    changelog = "https://github.com/foundry-rs/foundry/blob/v${finalAttrs.version}/CHANGELOG.md";
     license = with lib.licenses; [
       asl20
       mit
     ];
     maintainers = with lib.maintainers; [
+      beeb
       mitchmindtree
       msanft
+      samooyo
     ];
     platforms = lib.platforms.unix;
   };
-}
+})

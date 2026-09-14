@@ -4,24 +4,27 @@
   fetchFromGitHub,
   nixosTests,
   python3,
+  dart-sass,
   vaultwarden,
 }:
 
 buildNpmPackage rec {
   pname = "vaultwarden-webvault";
-  version = "2025.5.0.0";
+  version = "2026.7.0+0";
 
   src = fetchFromGitHub {
     owner = "vaultwarden";
     repo = "vw_web_builds";
     tag = "v${version}";
-    hash = "sha256-Z3QPKeo7+QV3XnECvLXz2Upv41h579WoVH0Vev0fixk=";
+    hash = "sha256-yX6Lf+7q9ptVAlx0q0Z55GnKhvAIjYvvvKR1ZZroWeo=";
   };
 
-  npmDepsHash = "sha256-FC3x7H0MQDVGajtaMA2PUK5+soG6kD9AaDbq/s1pOnY=";
+  npmDepsFetcherVersion = 2;
+  npmDepsHash = "sha256-WRxlvkgWboO0ukUHgjC5CrfgfwnmUfDXI4r5dx9CKww=";
 
   nativeBuildInputs = [
     python3
+    dart-sass
   ];
 
   makeCacheWritable = true;
@@ -30,6 +33,10 @@ buildNpmPackage rec {
     ELECTRON_SKIP_BINARY_DOWNLOAD = "1";
     npm_config_build_from_source = "true";
   };
+
+  preBuild = ''
+    echo "export const compilerCommand = ['dart-sass'];" > node_modules/sass-embedded/dist/lib/src/compiler-path.js
+  '';
 
   npmRebuildFlags = [
     # FIXME one of the esbuild versions fails to download @esbuild/linux-x64
@@ -56,12 +63,11 @@ buildNpmPackage rec {
     tests = nixosTests.vaultwarden;
   };
 
-  meta = with lib; {
+  meta = {
     description = "Integrates the web vault into vaultwarden";
-    homepage = "https://github.com/dani-garcia/bw_web_builds";
-    changelog = "https://github.com/dani-garcia/bw_web_builds/releases/tag/v${version}";
-    platforms = platforms.all;
-    license = licenses.gpl3Plus;
+    homepage = "https://github.com/vaultwarden/vw_web_builds";
+    platforms = lib.platforms.all;
+    license = lib.licenses.gpl3Plus;
     inherit (vaultwarden.meta) maintainers;
   };
 }

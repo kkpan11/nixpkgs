@@ -2,6 +2,7 @@
   lib,
   stdenv,
   fetchgit,
+  fetchpatch2,
   expat,
   fontconfig,
   freetype,
@@ -11,7 +12,7 @@
   libGL,
   libjpeg,
   libwebp,
-  libX11,
+  libx11,
   ninja,
   python3,
   testers,
@@ -30,51 +31,60 @@ stdenv.mkDerivation (finalAttrs: {
   # Version from https://skia.googlesource.com/skia/+/refs/heads/main/RELEASE_NOTES.md
   # or https://chromiumdash.appspot.com/releases
   # plus date of the tip of the corresponding chrome/m$version branch
-  version = "129-unstable-2024-09-18";
+  version = "144-unstable-2025-12-02";
 
   src = fetchgit {
     url = "https://skia.googlesource.com/skia.git";
     # Tip of the chrome/m$version branch
-    rev = "dda581d538cb6532cda841444e7b4ceacde01ec9";
-    hash = "sha256-NZiZFsABebugszpYsBusVlTYnYda+xDIpT05cZ8Jals=";
+    rev = "ee20d565acb08dece4a32e3f209cdd41119015ca";
+    hash = "sha256-0LiFK/8873gei70iVhNGRlcFeGIp7tjDEfxTBz1LYv8=";
   };
 
+  patches = [
+    # A tiny patch to fix build errors on loongarch64-linux using GCC (Clang works fine).
+    # https://skia-review.googlesource.com/c/skia/+/1199836
+    (fetchpatch2 {
+      url = "https://salsa.debian.org/fonts-team/libskia/-/raw/6574ca599eab076a9cd5b8667f81aef0f67b3eeb/debian/patches/loong-build";
+      hash = "sha256-6dUCQixmll2K8fqRGwhay7ee8gvdRq1NJjUHBHxIFvo=";
+    })
+  ];
+
   postPatch = ''
+    substituteInPlace BUILD.gn \
+      --replace-fail 'rebase_path("//bin/gn")' '"gn"'
     # System zlib detection bug workaround
     substituteInPlace BUILD.gn \
-      --replace-fail 'deps = [ "//third_party/zlib" ]' 'deps = []'
+      --replace-fail '"//third_party/zlib",' ""
   '';
 
   strictDeps = true;
-  nativeBuildInputs =
-    [
-      gn
-      ninja
-      python3
-    ]
-    ++ lib.optionals stdenv.hostPlatform.isDarwin [
-      xcbuild
-      cctools.libtool
-      zlib
-      fixDarwinDylibNames
-    ];
+  nativeBuildInputs = [
+    gn
+    ninja
+    python3
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    xcbuild
+    cctools.libtool
+    zlib
+    fixDarwinDylibNames
+  ];
 
-  buildInputs =
-    [
-      expat
-      fontconfig
-      freetype
-      harfbuzzFull
-      icu
-      libGL
-      libjpeg
-      libwebp
-      libX11
-    ]
-    ++ lib.optionals enableVulkan [
-      vulkan-headers
-      vulkan-memory-allocator
-    ];
+  buildInputs = [
+    expat
+    fontconfig
+    freetype
+    harfbuzzFull
+    icu
+    libGL
+    libjpeg
+    libwebp
+    libx11
+  ]
+  ++ lib.optionals enableVulkan [
+    vulkan-headers
+    vulkan-memory-allocator
+  ];
 
   gnFlags =
     let
@@ -84,6 +94,7 @@ stdenv.mkDerivation (finalAttrs: {
           "i686" = "x86";
           "arm" = "arm";
           "aarch64" = "arm64";
+          "loongarch64" = "loong64";
         }
         .${stdenv.hostPlatform.parsed.cpu.name};
     in
@@ -168,7 +179,7 @@ stdenv.mkDerivation (finalAttrs: {
     homepage = "https://skia.org/";
     license = lib.licenses.bsd3;
     maintainers = with lib.maintainers; [ fgaz ];
-    platforms = with lib.platforms; arm ++ aarch64 ++ x86 ++ x86_64;
+    platforms = with lib.platforms; arm ++ aarch64 ++ x86 ++ x86_64 ++ loongarch64;
     pkgConfigModules = [ "skia" ];
   };
 })

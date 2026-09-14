@@ -2,7 +2,8 @@
   lib,
   stdenv,
   fetchurl,
-  gtk2-x11,
+  gtk3,
+  gtk3-x11,
   pkg-config,
   python3,
   gfortran,
@@ -21,11 +22,12 @@ let
       setuptools
     ]
   );
+  gtk3' = if stdenv.hostPlatform.isDarwin then gtk3-x11 else gtk3;
 in
 
 stdenv.mkDerivation rec {
-  srcVersion = "jun25a";
-  version = "20250601_a";
+  srcVersion = "sep26a";
+  version = "20260901_a";
   pname = "gildas";
 
   src = fetchurl {
@@ -35,7 +37,7 @@ stdenv.mkDerivation rec {
       "http://www.iram.fr/~gildas/dist/gildas-src-${srcVersion}.tar.xz"
       "http://www.iram.fr/~gildas/dist/archive/gildas/gildas-src-${srcVersion}.tar.xz"
     ];
-    hash = "sha256-DhUGaG96bsZ1NGfDQEujtiM0AUwZBMD42uRpRWI5DX0=";
+    hash = "sha256-QdpUq3zZFJiuthYapgCHZ9HH4Qx/PAy5kLpRSWl6MMA=";
   };
 
   nativeBuildInputs = [
@@ -48,18 +50,19 @@ stdenv.mkDerivation rec {
   ];
 
   buildInputs = [
-    gtk2-x11
+    gtk3'
     cfitsio
     python3Env
     ncurses
   ];
 
-  patches =
-    [ ./wrapper.patch ]
-    ++ lib.optionals stdenv.hostPlatform.isDarwin [
-      ./clang.patch
-      ./cpp-darwin.patch
-    ];
+  patches = [
+    ./wrapper.patch
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    ./clang.patch
+    ./cpp-darwin.patch
+  ];
 
   env.NIX_CFLAGS_COMPILE = lib.optionalString stdenv.cc.isClang "-Wno-unused-command-line-argument";
 
@@ -67,11 +70,15 @@ stdenv.mkDerivation rec {
   env.GAG_CPP = lib.optionalString stdenv.hostPlatform.isDarwin "${gfortran.outPath}/bin/cpp";
 
   configurePhase = ''
+    runHook preConfigure
+
     substituteInPlace admin/wrapper.sh --replace '%%OUT%%' $out
     substituteInPlace admin/wrapper.sh --replace '%%PYTHONHOME%%' ${python3Env}
     substituteInPlace utilities/main/gag-makedepend.pl --replace '/usr/bin/perl' ${perl}/bin/perl
     source admin/gildas-env.sh -c gfortran -o openmp
     echo "gag_doc:        $out/share/doc/" >> kernel/etc/gag.dico.lcl
+
+    runHook postConfigure
   '';
 
   userExec = "astro class greg mapping sic";
@@ -100,7 +107,7 @@ stdenv.mkDerivation rec {
       extensible. GILDAS is written in Fortran-90, with a
       few parts in C/C++ (mainly keyboard interaction,
       plotting, widgets).'';
-    homepage = "http://www.iram.fr/IRAMFR/GILDAS/gildas.html";
+    homepage = "https://www.iram.fr/IRAMFR/GILDAS/";
     license = lib.licenses.free;
     maintainers = [
       lib.maintainers.bzizou

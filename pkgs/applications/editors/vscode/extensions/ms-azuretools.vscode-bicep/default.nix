@@ -10,8 +10,8 @@ vscode-utils.buildVscodeMarketplaceExtension {
   mktplcRef = {
     publisher = "ms-azuretools";
     name = "vscode-bicep";
-    version = "0.35.1";
-    hash = "sha256-Ggp3Z3pxPMEDxgzjPYNr830wx+upkBP4YAbKiOivbYs=";
+    version = "0.46.1";
+    hash = "sha256-SXs7x2KvWaXsZSfxheCQQul9jUiXTUst8i/E4qwl9jM=";
   };
 
   buildInputs = [
@@ -25,7 +25,6 @@ vscode-utils.buildVscodeMarketplaceExtension {
     downloadPage = "https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-bicep";
     homepage = "https://github.com/Azure/bicep/tree/main/src/vscode-bicep";
     license = lib.licenses.mit;
-    teams = [ lib.teams.stridtech ];
   };
 }
 

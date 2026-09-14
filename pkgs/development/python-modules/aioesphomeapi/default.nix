@@ -1,8 +1,8 @@
 {
   lib,
+  stdenv,
   buildPythonPackage,
   fetchFromGitHub,
-  pythonOlder,
 
   # build-system
   cython,
@@ -11,11 +11,12 @@
   # dependencies
   aiohappyeyeballs,
   async-interrupt,
-  async-timeout,
   chacha20poly1305-reuseable,
   cryptography,
   noiseprotocol,
   protobuf,
+  tzdata,
+  tzlocal,
   zeroconf,
 
   # tests
@@ -24,26 +25,33 @@
   pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aioesphomeapi";
-  version = "30.2.0";
+  version = "46.3.0"; # must track the major version that home-assistant pins
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "esphome";
     repo = "aioesphomeapi";
-    tag = "v${version}";
-    hash = "sha256-2mH1+/58DSWYWl/mTBsCp6r77OUNWV5rR+4mnbKV9PE=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-xwsNlgcYXUOJdJmpQ3/O1gtYptAeX2Vtn4ywxbdNGOM=";
   };
+
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "setuptools>=83.0.0" setuptools \
+      --replace-fail "Cython>=3.2.9" Cython
+  '';
 
   build-system = [
     setuptools
     cython
   ];
 
-  pythonRelaxDeps = [ "cryptography" ];
+  pythonRelaxDeps = [
+    "aiohappyeyeballs"
+    "cryptography"
+  ];
 
   dependencies = [
     aiohappyeyeballs
@@ -52,14 +60,20 @@ buildPythonPackage rec {
     cryptography
     noiseprotocol
     protobuf
+    tzdata
+    tzlocal
     zeroconf
-  ] ++ lib.optionals (pythonOlder "3.11") [ async-timeout ];
+  ];
 
   nativeCheckInputs = [
     mock
     pytest-asyncio
     pytestCheckHook
   ];
+
+  # Lack of network sandboxing leads to conflicting listeners when testing
+  # this package e.g. in nixpkgs-review on the two supported python package sets.
+  doCheck = !stdenv.hostPlatform.isDarwin;
 
   disabledTestPaths = [
     # benchmarking requires pytest-codespeed
@@ -70,14 +84,14 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "aioesphomeapi" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python Client for ESPHome native API";
     homepage = "https://github.com/esphome/aioesphomeapi";
-    changelog = "https://github.com/esphome/aioesphomeapi/releases/tag/${src.tag}";
-    license = licenses.mit;
-    maintainers = with maintainers; [
+    changelog = "https://github.com/esphome/aioesphomeapi/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
       fab
       hexa
     ];
   };
-}
+})

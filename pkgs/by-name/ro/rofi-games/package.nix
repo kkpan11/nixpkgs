@@ -3,29 +3,34 @@
   stdenv,
   fetchFromGitHub,
   rustPlatform,
+
   cargo,
   just,
   rofi,
   pkg-config,
+
   glib,
   cairo,
   pango,
+  sqlite,
+
+  nix-update-script,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "rofi-games";
-  version = "1.12.2";
+  version = "1.18.0";
 
   src = fetchFromGitHub {
     owner = "Rolv-Apneseth";
     repo = "rofi-games";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-6sopWMiXA6UmZP2wNbl7RlDDBRz4rNLPrNd6XnaFQko=";
+    hash = "sha256-6/UeQ+j38NeQFkeP0Pb2UKUbwruPgUos3e9TUQwv9WI=";
   };
 
   cargoDeps = rustPlatform.fetchCargoVendor {
     inherit (finalAttrs) pname version src;
-    hash = "sha256-5ofRwE68SNFYcnBiGORsTjl6jSeDJ+6PJH+/SA1l07g=";
+    hash = "sha256-oWmfzlt/qqg1CYfk1pKWhaapiP3iqFU4Idn6pBivjko=";
   };
 
   patches = [
@@ -49,13 +54,16 @@ stdenv.mkDerivation (finalAttrs: {
     glib
     cairo
     pango
+    sqlite
   ];
+
+  passthru.updateScript = nix-update-script { };
 
   meta = {
     changelog = "https://github.com/Rolv-Apneseth/rofi-games/blob/${finalAttrs.src.rev}/CHANGELOG.md";
     description = "Rofi plugin which adds a mode that will list available games for launch along with their box art";
     homepage = "https://github.com/Rolv-Apneseth/rofi-games";
-    license = lib.licenses.gpl2Only;
+    license = lib.licenses.agpl3Only;
     maintainers = with lib.maintainers; [ tomasajt ];
     platforms = lib.platforms.linux;
   };

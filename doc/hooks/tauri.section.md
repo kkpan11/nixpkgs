@@ -35,21 +35,18 @@ rustPlatform.buildRustPackage (finalAttrs: {
     hash = "...";
   };
 
-  nativeBuildInputs =
-    [
-      # Pull in our main hook
-      cargo-tauri.hook
+  nativeBuildInputs = [
+    # Pull in our main hook
+    cargo-tauri.hook
 
-      # Setup npm
-      nodejs
-      npmHooks.npmConfigHook
+    # Setup npm
+    nodejs
+    npmHooks.npmConfigHook
 
-      # Make sure we can find our libraries
-      pkg-config
-    ]
-    ++ lib.optionals stdenv.hostPlatform.isLinux [
-      wrapGAppsHook4
-    ];
+    # Make sure we can find our libraries
+    pkg-config
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [ wrapGAppsHook4 ];
 
   buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
     glib-networking # Most Tauri apps need networking
@@ -76,11 +73,15 @@ Controls the flags passed to `cargo tauri build`.
 
 #### `tauriBundleType` {#tauri-bundle-type}
 
-The [bundle type](https://tauri.app/v1/guides/building/) to build.
+The [bundle type](https://tauri.app/reference/javascript/api/namespaceapp/#bundletype) to build.
 
 #### `dontTauriBuild` {#dont-tauri-build}
 
 Disables using `tauriBuildHook`.
+
+#### `dontTauriFixup` {#dont-tauri-fixup}
+
+Disables the `tauriFixupHook` pre fixup phase.
 
 #### `dontTauriInstall` {#dont-tauri-install}
 

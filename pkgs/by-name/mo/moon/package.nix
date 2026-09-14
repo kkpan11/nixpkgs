@@ -5,24 +5,26 @@
   fetchFromGitHub,
   openssl,
   pkg-config,
+  protobuf,
   versionCheckHook,
   nix-update-script,
   installShellFiles,
   buildPackages,
+  writableTmpDirAsHomeHook,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "moon";
-  version = "1.36.2";
+  version = "2.5.3";
 
   src = fetchFromGitHub {
     owner = "moonrepo";
     repo = "moon";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-CE9qhLIXQ72Ym8u1S4JzQ9NSbDSstQcAR4eQFn1lA0s=";
+    hash = "sha256-tDJjEpQBCo6rpAJBITuxkzXWa0B/k10ZbWR/I7e+KAw=";
   };
 
-  cargoHash = "sha256-i3lUyq3e+UL7I35FapprLWUoDoG9SmUorQmeoUfpC/k=";
+  cargoHash = "sha256-j80p+Lfpa17gPPmEzJOpQz2vmI73AodxEUiZt31x9To=";
 
   env = {
     RUSTFLAGS = "-C strip=symbols";
@@ -32,7 +34,9 @@ rustPlatform.buildRustPackage (finalAttrs: {
   buildInputs = [ openssl ];
   nativeBuildInputs = [
     pkg-config
+    protobuf
     installShellFiles
+    writableTmpDirAsHomeHook
   ];
 
   postInstall = lib.optionalString (stdenv.hostPlatform.emulatorAvailable buildPackages) (
@@ -61,6 +65,10 @@ rustPlatform.buildRustPackage (finalAttrs: {
     homepage = "https://github.com/moonrepo/moon";
     changelog = "https://github.com/moonrepo/moon/releases/tag/v${finalAttrs.version}";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ flemzord ];
+    maintainers = with lib.maintainers; [
+      flemzord
+      flupke
+      maxence-lefebvre
+    ];
   };
 })

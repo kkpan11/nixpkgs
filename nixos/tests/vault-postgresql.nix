@@ -11,7 +11,6 @@
   name = "vault-postgresql";
   meta = with pkgs.lib.maintainers; {
     maintainers = [
-      lnl7
       roberth
     ];
   };
@@ -25,11 +24,11 @@
 
       systemd.services.vault = {
         after = [
-          "postgresql.service"
+          "postgresql.target"
         ];
         # Try for about 10 minutes rather than the default of 5 attempts.
         serviceConfig.RestartSec = 1;
-        serviceConfig.StartLimitBurst = 600;
+        unitConfig.StartLimitBurst = 600;
       };
       # systemd.services.vault.unitConfig.RequiresMountsFor = "/run/keys/";
 

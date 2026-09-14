@@ -3,50 +3,47 @@
   fetchFromGitHub,
   rustPlatform,
   nixVersions,
-  nlohmann_json,
-  boost,
+  nix ? nixVersions.nix_2_34,
   graphviz,
   pkg-config,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "nix-du";
-  version = "1.2.3";
+  version = "1.2.4";
 
   src = fetchFromGitHub {
     owner = "symphorien";
     repo = "nix-du";
-    tag = "v${version}";
-    hash = "sha256-/Afp0InA/0xXdombAzylYJF9wcv5WwYizVsP+fHTDrM=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-pqsBWdCdLEdkubcVMuZzF425oU2zgsMSPeDElM+zYBE=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-Q/woxGh1I6FpgJ5D0x7KovSwuRXfZzqjzwljaoKj0/Y=";
+  cargoHash = "sha256-xotbDCuWUeahVsRoOiBdZDC3JpK2a9osbSyVtUyaBrg=";
 
   doCheck = true;
   nativeCheckInputs = [
-    nixVersions.nix_2_24
+    nix
     graphviz
   ];
 
   buildInputs = [
-    boost
-    nixVersions.nix_2_24
-    nlohmann_json
-  ];
+    nix
+  ]
+  ++ nix.buildInputs;
 
   nativeBuildInputs = [
     pkg-config
     rustPlatform.bindgenHook
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Tool to determine which gc-roots take space in your nix store";
     homepage = "https://github.com/symphorien/nix-du";
-    license = licenses.lgpl3Only;
-    maintainers = [ maintainers.symphorien ];
-    platforms = platforms.unix;
+    license = lib.licenses.lgpl3Only;
+    maintainers = [ lib.maintainers.symphorien ];
+    platforms = lib.platforms.unix;
     mainProgram = "nix-du";
-    changelog = "https://github.com/symphorien/nix-du/blob/v${version}/CHANGELOG.md";
+    changelog = "https://github.com/symphorien/nix-du/blob/v${finalAttrs.version}/CHANGELOG.md";
   };
-}
+})

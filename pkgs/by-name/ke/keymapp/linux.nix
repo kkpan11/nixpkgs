@@ -39,7 +39,7 @@ stdenv.mkDerivation {
     runHook preInstall
 
     install -m755 -D keymapp "$out/bin/keymapp"
-    install -Dm644 icon.png "$out/share/pixmaps/keymapp.png"
+    install -Dm644 icon.png "$out/share/icons/keymapp.png"
 
     runHook postInstall
   '';
@@ -48,15 +48,17 @@ stdenv.mkDerivation {
     gappsWrapperArgs+=(--set-default '__NV_PRIME_RENDER_OFFLOAD' 1)
   '';
 
-  desktopItem = makeDesktopItem {
-    name = "keymapp";
-    icon = "keymapp";
-    desktopName = "Keymapp";
-    categories = [
-      "Settings"
-      "HardwareSettings"
-    ];
-    type = "Application";
-    exec = "keymapp";
-  };
+  desktopItems = [
+    (makeDesktopItem {
+      name = "keymapp";
+      icon = "keymapp";
+      desktopName = "Keymapp";
+      categories = [
+        "Settings"
+        "HardwareSettings"
+      ];
+      type = "Application";
+      exec = "keymapp";
+    })
+  ];
 }

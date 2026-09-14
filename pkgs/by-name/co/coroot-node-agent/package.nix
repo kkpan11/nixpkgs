@@ -5,28 +5,36 @@
   systemdLibs,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "coroot-node-agent";
-  version = "1.24.0";
+  version = "1.35.8";
 
   src = fetchFromGitHub {
     owner = "coroot";
     repo = "coroot-node-agent";
-    rev = "v${version}";
-    hash = "sha256-48bKV1z5D8FhRIm5cl5PcJ2pVGux6sV985Hk855B8Ng=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-JRivRViw3FJfHU6beGfH9bhGwYE9ODMi4BRNJylf+ak=";
   };
 
-  vendorHash = "sha256-wOR0xdI+5oP+wZwyXKgWHQyUVMNH7yRk1h1m4vCEXTs=";
+  vendorHash = "sha256-KZ+CkBJSx/4PjemMycyEuOHGg6hatsGirQWoYnfFyKo=";
 
   buildInputs = [ systemdLibs ];
 
-  CGO_CFLAGS = "-I ${systemdLibs}/include";
+  env.CGO_CFLAGS = "-I ${systemdLibs}/include";
+
+  ldflags = [
+    "-extldflags='-Wl,-z,lazy'"
+    "-X 'github.com/coroot/coroot-node-agent/flags.Version=${finalAttrs.version}'"
+  ];
 
   meta = {
     description = "Prometheus exporter based on eBPF";
     homepage = "https://github.com/coroot/coroot-node-agent";
     license = lib.licenses.asl20;
-    maintainers = with lib.maintainers; [ errnoh ];
+    maintainers = with lib.maintainers; [
+      errnoh
+      allsimon
+    ];
     mainProgram = "coroot-node-agent";
   };
-}
+})

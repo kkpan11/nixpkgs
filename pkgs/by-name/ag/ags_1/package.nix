@@ -14,7 +14,7 @@
   libsoup_3,
   networkmanager,
   upower,
-  typescript,
+  typescript_7,
   wrapGAppsHook3,
   linux-pam,
   nix-update-script,
@@ -27,7 +27,7 @@ buildNpmPackage (finalAttrs: {
   src = fetchFromGitHub {
     owner = "Aylur";
     repo = "ags";
-    rev = "v${finalAttrs.version}";
+    tag = "v${finalAttrs.version}";
     hash = "sha256-ebnkUaee/pnfmw1KmOZj+MP1g5wA+8BT/TPKmn4Dkwc=";
     fetchSubmodules = true;
   };
@@ -42,7 +42,7 @@ buildNpmPackage (finalAttrs: {
     pkg-config
     gjs
     gobject-introspection
-    typescript
+    typescript_7
     wrapGAppsHook3
   ];
 
@@ -59,8 +59,19 @@ buildNpmPackage (finalAttrs: {
     upower
   ];
 
+  patches = [
+    # Workaround for TypeScript 5.9: https://github.com/Aylur/ags/issues/725#issuecomment-3070009695
+    ./ts59.patch
+    # Workaround for TypeScript 7
+    ./ts7.patch
+  ];
+
   postPatch = ''
     chmod u+x ./post_install.sh && patchShebangs ./post_install.sh
+
+    # JS ERROR: TypeError: Repository.prepend_search_path is not a function
+    substituteInPlace src/com.github.Aylur.ags.js.in \
+      --replace-fail "Repository.prepend" "Repository.dup_default().prepend"
   '';
 
   passthru.updateScript = nix-update-script { };
@@ -71,7 +82,6 @@ buildNpmPackage (finalAttrs: {
     changelog = "https://github.com/Aylur/ags/releases/tag/v${finalAttrs.version}";
     license = lib.licenses.gpl3Plus;
     maintainers = with lib.maintainers; [
-      foo-dogsquared
       johnrtitor
     ];
     mainProgram = "ags";

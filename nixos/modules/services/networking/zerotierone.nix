@@ -61,29 +61,26 @@ in
 
       path = [ cfg.package ];
 
-      preStart =
-        ''
-          mkdir -p /var/lib/zerotier-one/networks.d
-          chmod 700 /var/lib/zerotier-one
-          chown -R root:root /var/lib/zerotier-one
-
-          # cleans up old symlinks also if we unset localConf
-          if [[ -L "${localConfFilePath}" && "$(readlink "${localConfFilePath}")" =~ ^${builtins.storeDir}.* ]]; then
-            rm ${localConfFilePath}
-          fi
-        ''
-        + (concatMapStrings (netId: ''
-          touch "/var/lib/zerotier-one/networks.d/${netId}.conf"
-        '') cfg.joinNetworks)
-        + lib.optionalString (cfg.localConf != { }) ''
-          # in case the user has applied manual changes to the local.conf, we backup the file
-          if [ -f "${localConfFilePath}" ]; then
-            mv ${localConfFilePath} ${localConfFilePath}.bak
-          fi
-          ln -s ${localConfFile} ${localConfFilePath}
-        '';
+      preStart = ''
+        # cleans up old symlinks also if we unset localConf
+        if [[ -L "${localConfFilePath}" && "$(readlink "${localConfFilePath}")" =~ ^${builtins.storeDir}.* ]]; then
+          rm ${localConfFilePath}
+        fi
+      ''
+      + (concatMapStrings (netId: ''
+        touch "/var/lib/zerotier-one/networks.d/${netId}.conf"
+      '') cfg.joinNetworks)
+      + lib.optionalString (cfg.localConf != { }) ''
+        # in case the user has applied manual changes to the local.conf, we backup the file
+        if [ -f "${localConfFilePath}" ]; then
+          mv ${localConfFilePath} ${localConfFilePath}.bak
+        fi
+        ln -s ${localConfFile} ${localConfFilePath}
+      '';
 
       serviceConfig = {
+        StateDirectory = [ "zerotier-one/networks.d" ];
+        StateDirectoryMode = "0700";
         ExecStart = "${cfg.package}/bin/zerotier-one -p${toString cfg.port}";
         Restart = "always";
         KillMode = "process";

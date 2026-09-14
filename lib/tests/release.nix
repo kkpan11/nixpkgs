@@ -9,7 +9,6 @@
   pkgsBB ? pkgs.pkgsBuildBuild,
   nix ? pkgs-nixVersions.stable,
   nixVersions ? [
-    pkgs-nixVersions.minimum
     nix
     pkgs-nixVersions.latest
   ],
@@ -29,6 +28,9 @@ in
 pkgsBB.symlinkJoin {
   name = "nixpkgs-lib-tests";
   paths = map testWithNix nixVersions ++ [
+    (import ./nix-unit.nix {
+      inherit pkgs;
+    })
     (import ./maintainers.nix {
       inherit pkgs;
       lib = import ../.;

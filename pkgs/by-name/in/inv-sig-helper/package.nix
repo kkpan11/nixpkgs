@@ -16,16 +16,15 @@
 
 rustPlatform.buildRustPackage {
   pname = "inv-sig-helper";
-  version = "0-unstable-2025-04-23";
+  version = "0-unstable-2025-07-23";
 
   src = fetchFromGitHub {
     owner = "iv-org";
     repo = "inv_sig_helper";
-    rev = "5d3c7a4574fafe0bc5fbed9e7e33483889832fd4";
-    hash = "sha256-WGh62tjKGe9OD19aq+lP9GfYs5PrGqkeT6VvmtNottQ=";
+    rev = "dcda9f16ae748639cec652ed504809b60f149e71";
+    hash = "sha256-QVVCTM1gn/n6zDD6XdmwXdpVBlnBV9cHCvn8xfOq6E8=";
   };
 
-  useFetchCargoVendor = true;
   cargoHash = "sha256-DnJL7kkcVn5dW3AoPCn829WmkaCjpDZtYUXnpiB857Q=";
 
   nativeBuildInputs = [
@@ -47,7 +46,10 @@ rustPlatform.buildRustPackage {
     description = "Rust service that decrypts YouTube signatures and manages player information";
     homepage = "https://github.com/iv-org/inv_sig_helper";
     license = lib.licenses.agpl3Only;
-    maintainers = with lib.maintainers; [ GaetanLepage ];
+    maintainers = with lib.maintainers; [
+      GaetanLepage
+      Fijxu
+    ];
     mainProgram = "inv_sig_helper_rust";
   };
 }

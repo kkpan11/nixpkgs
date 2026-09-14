@@ -4,7 +4,6 @@
   buildPythonPackage,
   fetchFromGitHub,
   pytestCheckHook,
-  pythonOlder,
   nix-update-script,
   setuptools,
   paup-cli,
@@ -16,7 +15,7 @@ let
 in
 buildPythonPackage rec {
   pname = "dendropy";
-  version = "5.0.6";
+  version = "5.0.13";
 
   pyproject = true;
   build-system = [ setuptools ];
@@ -25,7 +24,7 @@ buildPythonPackage rec {
     owner = "jeetsukumaran";
     repo = "dendropy";
     tag = "v${version}";
-    hash = "sha256-pZ6vVN9vGUpdLvvVZLYUj3yWgn+9qd7D0wq5NxM8UiY=";
+    hash = "sha256-QfagYW/8qX+66RQizOb1wm0zydSMOJXf4FUNMCtp1/w=";
   };
 
   postPatch = ''

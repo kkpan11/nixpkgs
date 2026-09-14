@@ -10,23 +10,22 @@
   zlib,
   buildPackages,
   versionCheckHook,
+  nix-update-script,
   withClipboard ? true,
-  withTrash ? !stdenv.hostPlatform.isDarwin,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "broot";
-  version = "1.46.5";
+  version = "1.60.1";
 
   src = fetchFromGitHub {
     owner = "Canop";
     repo = "broot";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-ySW7bEM74D83Id1Jp5UBEjqJROjwcoHrDY8wbgEVCGM=";
+    hash = "sha256-l+NR7i1vo0W5oDuPvcRECdhB7TQTwd+aWbRJwbNLuSI=";
   };
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-rSX+DdvqqThCxA1ONAYQbhWrdYDQHOMiXURqd+KSw64=";
+  cargoHash = "sha256-zAOvbJkQF5jc16/txTUnVy8GcpKvfFbRSEc0EDWbCzc=";
 
   nativeBuildInputs = [
     installShellFiles
@@ -34,15 +33,9 @@ rustPlatform.buildRustPackage (finalAttrs: {
     pkg-config
   ];
 
-  buildInputs =
-    [
-      libgit2
-    ]
-    ++ lib.optionals stdenv.hostPlatform.isDarwin [
-      zlib
-    ];
+  buildInputs = [ libgit2 ] ++ lib.optionals stdenv.hostPlatform.isDarwin [ zlib ];
 
-  buildFeatures = lib.optionals withTrash [ "trash" ] ++ lib.optionals withClipboard [ "clipboard" ];
+  buildFeatures = lib.optionals withClipboard [ "clipboard" ];
 
   env.RUSTONIG_SYSTEM_LIBONIG = true;
 
@@ -86,14 +79,15 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   doInstallCheck = true;
   nativeInstallCheckInputs = [ versionCheckHook ];
-  versionCheckProgramArg = "--version";
 
-  meta = with lib; {
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
     description = "Interactive tree view, a fuzzy search, a balanced BFS descent and customizable commands";
     homepage = "https://dystroy.org/broot/";
     changelog = "https://github.com/Canop/broot/releases/tag/v${finalAttrs.version}";
-    maintainers = with maintainers; [ dywedir ];
-    license = with licenses; [ mit ];
+    maintainers = with lib.maintainers; [ dywedir ];
+    license = lib.licenses.mit;
     mainProgram = "broot";
   };
 })

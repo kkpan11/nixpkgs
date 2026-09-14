@@ -14,21 +14,21 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "unison-code-manager";
-  version = "0.5.40";
+  version = "1.4.0";
 
   src =
     {
       aarch64-darwin = fetchurl {
         url = "https://github.com/unisonweb/unison/releases/download/release/${finalAttrs.version}/ucm-macos-arm64.tar.gz";
-        hash = "sha256-KsypPKHyscOiPXy4ZeCZcUFGIV97lsnLREJp5KAGFcM=";
+        hash = "sha256-ZBlW1OyxSC3UgtsBu8FkmSFZ4YOAi8zpGBTMfUoumzI=";
       };
-      x86_64-darwin = fetchurl {
-        url = "https://github.com/unisonweb/unison/releases/download/release/${finalAttrs.version}/ucm-macos-x64.tar.gz";
-        hash = "sha256-TpD2W+j7F83E+YPQRNe1K7fnNfpJEwt25ldB+nqQw7I=";
+      aarch64-linux = fetchurl {
+        url = "https://github.com/unisonweb/unison/releases/download/release/${finalAttrs.version}/ucm-linux-arm64.tar.gz";
+        hash = "sha256-tphCr3P8EWsyOc7D47duA2sR1xPy/YyBzQlZOn53py0=";
       };
       x86_64-linux = fetchurl {
         url = "https://github.com/unisonweb/unison/releases/download/release/${finalAttrs.version}/ucm-linux-x64.tar.gz";
-        hash = "sha256-o1Zx9Vmovl0b/QMVT9XGaRM6FphsIsZQZamYlJ6b6y0=";
+        hash = "sha256-RhO0UawMl/IHSP2vTchwKgLVjpmnA3V3056A14C6Elk=";
       };
     }
     .${stdenv.hostPlatform.system} or (throw "Unsupported platform ${stdenv.hostPlatform.system}");
@@ -40,7 +40,8 @@ stdenv.mkDerivation (finalAttrs: {
 
   nativeBuildInputs = [
     makeWrapper
-  ] ++ lib.optional (!stdenv.hostPlatform.isDarwin) autoPatchelfHook;
+  ]
+  ++ lib.optional (!stdenv.hostPlatform.isDarwin) autoPatchelfHook;
   buildInputs = lib.optionals (!stdenv.hostPlatform.isDarwin) [
     gmp
     ncurses6
@@ -49,9 +50,10 @@ stdenv.mkDerivation (finalAttrs: {
 
   installPhase = ''
     mkdir -p $out/{bin,lib}
-    mv runtime $out/lib/runtime
+
     mv ui $out/ui
     mv unison $out/unison
+
     makeWrapper $out/unison/unison $out/bin/ucm \
       --prefix LD_LIBRARY_PATH : ${
         lib.makeLibraryPath [
@@ -60,28 +62,29 @@ stdenv.mkDerivation (finalAttrs: {
         ]
       } \
       --prefix PATH ":" "${lib.makeBinPath [ less ]}" \
-      --add-flags "--runtime-path $out/lib/runtime/bin/unison-runtime" \
       --set UCM_WEB_UI "$out/ui"
   '';
 
-  meta = with lib; {
+  passthru.updateScript = ./update.sh;
+
+  meta = {
     description = "Modern, statically-typed purely functional language";
     homepage = "https://unisonweb.org/";
-    license = with licenses; [
-      mit
-      bsd3
+    license = [
+      lib.licenses.mit
+      lib.licenses.bsd3
     ];
     mainProgram = "ucm";
-    maintainers = with maintainers; [
-      ceedubs
-      sellout
-      virusdave
+    maintainers = [
+      lib.maintainers.ceedubs
+      lib.maintainers.sellout
+      lib.maintainers.virusdave
     ];
     platforms = [
-      "x86_64-darwin"
       "x86_64-linux"
       "aarch64-darwin"
+      "aarch64-linux"
     ];
-    sourceProvenance = with sourceTypes; [ binaryNativeCode ];
+    sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
   };
 })

@@ -4,18 +4,17 @@
   makeBinaryWrapper,
   odin,
   stdenv,
-  unstableGitUpdater,
 }:
 
-stdenv.mkDerivation {
+stdenv.mkDerivation (finalAttrs: {
   pname = "ols";
-  version = "0-unstable-2025-05-11";
+  version = "dev-2026-06";
 
   src = fetchFromGitHub {
     owner = "DanielGavin";
     repo = "ols";
-    rev = "89f83305019a70d714af015aec734700dfee967c";
-    hash = "sha256-z+0+eEc+DOmHRv4jt3kOq4WvvJ4o+h9j/JDYgmxNCms=";
+    tag = finalAttrs.version;
+    hash = "sha256-BqLaPVntNzK5N3lffjn4umLhqSM0bOcAVgzk+f13BKM=";
   };
 
   postPatch = ''
@@ -40,12 +39,12 @@ stdenv.mkDerivation {
     runHook preInstall
 
     install -Dm755 ols odinfmt -t $out/bin/
-    wrapProgram $out/bin/ols --set-default ODIN_ROOT ${odin}/share
+    wrapProgram $out/bin/ols \
+      --set-default ODIN_ROOT ${odin}/share \
+      --set-default OLS_BUILTIN_FOLDER ${odin}/share/base/builtin
 
     runHook postInstall
   '';
-
-  passthru.updateScript = unstableGitUpdater { hardcodeZeroVersion = true; };
 
   meta = {
     inherit (odin.meta) platforms;
@@ -54,7 +53,8 @@ stdenv.mkDerivation {
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [
       astavie
+      atomicptr
     ];
     mainProgram = "ols";
   };
-}
+})

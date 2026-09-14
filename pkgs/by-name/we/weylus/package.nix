@@ -9,7 +9,17 @@
   x264,
   libva,
   gst_all_1,
-  xorg,
+  libxv,
+  libxtst,
+  libxrender,
+  libxrandr,
+  libxi,
+  libxinerama,
+  libxft,
+  libxfixes,
+  libxext,
+  libxcursor,
+  libxcomposite,
   libdrm,
   pkg-config,
   pango,
@@ -18,63 +28,67 @@
   git,
   autoconf,
   libtool,
-  typescript,
+  yq-go,
+  typescript_7,
   wayland,
   libxkbcommon,
+  unstableGitUpdater,
 }:
 
 rustPlatform.buildRustPackage {
   pname = "weylus";
-  version = "unstable-2025-02-24";
+  version = "0.11.4-unstable-2026-2-16";
 
   src = fetchFromGitHub {
     owner = "H-M-H";
     repo = "weylus";
-    rev = "5202806798ccca67c24da52ba51ee50b973b7089";
-    sha256 = "sha256-lx1ZVp5DkQiL9/vw6PAZ34Lge+K8dfEVh6vLnCUNf7M=";
+    rev = "38a01a8f8e429500c7e9f67fc1c88ca37a4d1e93";
+    hash = "sha256-kcFXwrxg9PQxR4/71s10TMtaFvksuQaNReSoGBbrdM0=";
   };
 
-  buildInputs =
-    [
-      ffmpeg
-      x264
-    ]
-    ++ lib.optionals stdenv.hostPlatform.isLinux [
-      dbus
-      libva
-      gst_all_1.gst-plugins-base
-      xorg.libXext
-      xorg.libXft
-      xorg.libXinerama
-      xorg.libXcursor
-      xorg.libXrender
-      xorg.libXfixes
-      xorg.libXtst
-      xorg.libXrandr
-      xorg.libXcomposite
-      xorg.libXi
-      xorg.libXv
-      pango
-      libdrm
-      wayland
-      libxkbcommon
-    ];
+  postPatch = ''
+    yq -i '.compilerOptions += {"strict": false, "rootDir": "ts"}' tsconfig.json
+  '';
 
-  nativeBuildInputs =
-    [
-      cmake
-      git
-      typescript
-      makeWrapper
-    ]
-    ++ lib.optionals stdenv.hostPlatform.isLinux [
-      pkg-config
-      autoconf
-      libtool
-    ];
+  buildInputs = [
+    ffmpeg
+    x264
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [
+    dbus
+    libva
+    gst_all_1.gst-plugins-base
+    libxext
+    libxft
+    libxinerama
+    libxcursor
+    libxrender
+    libxfixes
+    libxtst
+    libxrandr
+    libxcomposite
+    libxi
+    libxv
+    pango
+    libdrm
+    wayland
+    libxkbcommon
+  ];
 
-  useFetchCargoVendor = true;
-  cargoHash = "sha256-dLhlYOrLjoBSRGDJB0qTEIb+oGnp9X+ADHddpYITdl8=";
+  nativeBuildInputs = [
+    cmake
+    git
+    yq-go
+    typescript_7
+    makeWrapper
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [
+    pkg-config
+    autoconf
+    libtool
+  ];
+
+  cargoHash = "sha256-2K+zLgZ3ApTCpj/OYy0f80pkvXPaB6TJe4fcrqsxPPw=";
 
   cargoBuildFlags = [ "--features=ffmpeg-system" ];
   cargoTestFlags = [ "--features=ffmpeg-system" ];
@@ -100,11 +114,15 @@ rustPlatform.buildRustPackage {
     ];
   };
 
-  meta = with lib; {
+  passthru.updateScript = unstableGitUpdater {
+    tagPrefix = "v";
+  };
+
+  meta = {
     description = "Use your tablet as graphic tablet/touch screen on your computer";
     mainProgram = "weylus";
     homepage = "https://github.com/H-M-H/Weylus";
-    license = with licenses; [ agpl3Only ];
-    maintainers = with maintainers; [ lom ];
+    license = lib.licenses.agpl3Only;
+    maintainers = [ lib.maintainers.zainkergaye ];
   };
 }

@@ -9,6 +9,7 @@
   callPackage,
   fetchFromGitiles,
   fetchFromGitHub,
+  buildPackages,
 }:
 
 let
@@ -43,8 +44,9 @@ let
     makeSetupHook {
       name = "gclient-unpack-hook";
       substitutions = {
-        jq = lib.getExe jq;
+        jq = lib.getExe buildPackages.jq;
       };
+      meta.license = lib.licenses.mit;
     } ./gclient-unpack-hook.sh
   ) { };
 
@@ -67,8 +69,8 @@ runCommand "gclient2nix"
     # substitutions
     depot_tools_checkout = fetchgit {
       url = "https://chromium.googlesource.com/chromium/tools/depot_tools";
-      rev = "452fe3be37f78fbecefa1b4b0d359531bcd70d0d";
-      hash = "sha256-8IiJOm0FLa/u1Vd96tb33Ruj4IUTCeYgBpTk88znhPw=";
+      rev = "604a436d8af23ca0b9fd3d1d8be193fc9a4679f6";
+      hash = "sha256-tNJq/a4j0AHmn2FS4zbwkWeEMYlp4uXDcpPzP9D3ULE=";
     };
 
     passthru = {

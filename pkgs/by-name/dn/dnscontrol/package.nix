@@ -1,24 +1,24 @@
 {
   lib,
-  buildGoModule,
+  stdenv,
+  buildGo127Module,
   fetchFromGitHub,
   installShellFiles,
-  testers,
-  dnscontrol,
+  versionCheckHook,
 }:
 
-buildGoModule rec {
+buildGo127Module (finalAttrs: {
   pname = "dnscontrol";
-  version = "4.20.0";
+  version = "5.0.4";
 
   src = fetchFromGitHub {
-    owner = "StackExchange";
+    owner = "DNSControl";
     repo = "dnscontrol";
-    tag = "v${version}";
-    hash = "sha256-GiwmSAcExafo5fJcdNsMF8BuvHdUaNoCLpl5y1pautw=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-ihcFAsIrNX3pK6TyWcHaaYlqWj8geJvtdNoDa0z3rnI=";
   };
 
-  vendorHash = "sha256-8KSqPDEI5gmxzcgFsaCzeXzYN6tO9Fjq7rnQN/vSThw=";
+  vendorHash = "sha256-1MtLq6DWvjvTyLoOARju5ZlW/Q9J24L+Lcy0BdsW40k=";
 
   nativeBuildInputs = [ installShellFiles ];
 
@@ -26,11 +26,10 @@ buildGoModule rec {
 
   ldflags = [
     "-s"
-    "-w"
-    "-X=main.version=${version}"
+    "-X=github.com/DNSControl/dnscontrol/v${lib.versions.major finalAttrs.version}/pkg/version.version=${finalAttrs.version}"
   ];
 
-  postInstall = ''
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     installShellCompletion --cmd dnscontrol \
       --bash <($out/bin/dnscontrol shell-completion bash) \
       --zsh <($out/bin/dnscontrol shell-completion zsh)
@@ -41,19 +40,21 @@ buildGoModule rec {
     rm pkg/spflib/flatten_test.go pkg/spflib/parse_test.go
   '';
 
-  passthru.tests = {
-    version = testers.testVersion {
-      command = "${lib.getExe dnscontrol} version";
-      package = dnscontrol;
-    };
-  };
+  nativeInstallCheckInputs = [
+    versionCheckHook
+  ];
+  versionCheckProgramArg = "version";
+  doInstallCheck = true;
 
-  meta = with lib; {
+  meta = {
     description = "Synchronize your DNS to multiple providers from a simple DSL";
     homepage = "https://dnscontrol.org/";
-    changelog = "https://github.com/StackExchange/dnscontrol/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ SuperSandro2000 ];
+    changelog = "https://github.com/DNSControl/dnscontrol/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      SuperSandro2000
+      zowoq
+    ];
     mainProgram = "dnscontrol";
   };
-}
+})
